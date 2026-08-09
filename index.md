@@ -1,11 +1,13 @@
 ---
 layout: home
-title: Writing
+title: Home
 ---
 
-I build agentic AI systems. This is a six-part series on designing an
-AI customer-support assistant for a healthcare provider — conversational,
-multi-turn, and built on the Model Context Protocol (MCP) with
-Domain-Driven Design.
+I build agentic AI systems — the reasoning layer that decides what a product
+should actually *do*, and the architecture that keeps it trustworthy in production.
 
-The posts below are ordered oldest-first; start at Part 1.
+I write about applied AI, the Model Context Protocol, and Domain-Driven Design:
+how these ideas hold up once real users, latency budgets, and messy data arrive.
+I learn by building — most of what's here started as a bug I had to understand.
+
+Views are my own.

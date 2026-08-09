@@ -1,4 +1,10 @@
-# Building an Agentic AI Customer Support System for a Healthcare Provider, Part 2: MCP Under the Hood
+---
+layout: post
+title: "Part 2: MCP Under the Hood"
+date: 2026-08-12 09:00:00 +1000
+series: "Building an Agentic AI Support System for a Healthcare Provider"
+tags: [mcp, agents, multi-turn]
+---
 
 *Part 1 covered why the design is hybrid — buy the channel, build the brain. This part opens the brain up: what MCP actually is, and what happens in the half-second between a user's message and the system's reply.*
 

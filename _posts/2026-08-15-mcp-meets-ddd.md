@@ -1,4 +1,10 @@
-# Building an Agentic AI Customer Support System for a Healthcare Provider, Part 3: MCP Meets DDD
+---
+layout: post
+title: "Part 3: MCP Meets DDD"
+date: 2026-08-15 09:00:00 +1000
+series: "Building an Agentic AI Support System for a Healthcare Provider"
+tags: [mcp, ddd, bounded-contexts]
+---
 
 *Part 2 opened up the protocol. This part is about the design philosophy layered on top — and a claim I'll try to earn: MCP servers are the most literal implementation of DDD bounded contexts I've ever worked with.*
 

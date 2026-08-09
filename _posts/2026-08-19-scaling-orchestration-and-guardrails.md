@@ -1,4 +1,10 @@
-# Building an Agentic AI Customer Support System for a Healthcare Provider, Part 5: Scaling Up — Orchestration, Guardrails, Observability
+---
+layout: post
+title: "Part 5: Scaling Up — Orchestration, Guardrails, Observability"
+date: 2026-08-19 09:00:00 +1000
+series: "Building an Agentic AI Support System for a Healthcare Provider"
+tags: [orchestration, guardrails, observability]
+---
 
 *Part 4 was state and infrastructure. This part is the harder scaling problem: keeping an LLM-driven system trustworthy as it does more. One idea organises everything here, and it crystallised slowly over months of fixes: the split between what the system guarantees and what the model merely interprets.*
 

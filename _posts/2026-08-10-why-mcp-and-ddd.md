@@ -1,15 +1,16 @@
 ---
 layout: post
-title: "Why MCP + DDD"
-series: "Building an Agentic AI Support System in Healthcare Context"
-tags: [MCP, DDD, LLM, Agents]
+title: "Part 1: Why MCP + DDD"
+date: 2026-08-10 09:00:00 +1000
+series: "Building an Agentic AI Support System for a Healthcare Provider"
+tags: [mcp, ddd, agents, architecture]
 ---
 
-*This series is the story of building an agentic AI customer-support system in healthcare context — a conversational, multi-turn assistant that verifies who's talking to it, carries context across a whole dialogue, acts on accounts, and knows when to hand off to a human. It's partly a portfolio piece and partly a letter to future-me, for the day I forget how any of this works. Everything here is a generalised reference design; no company-specific or proprietary details appear.*
+*This series is the story of building an agentic AI customer-support system for a healthcare provider — a conversational, multi-turn assistant that verifies who's talking to it, carries context across a whole dialogue, acts on accounts, and knows when to hand off to a human. It's partly a portfolio piece and partly a letter to future-me, for the day I forget how any of this works. Everything here is a generalised reference design; no company-specific or proprietary details appear.*
 
 ## Where it started
 
-A healthcare client supporting line is a special place. Patients call about device orders. Clinics call about their patients. Doctors call about both. Everyone arrives mid-thought, nobody states their whole request in one message, and before you can discuss *anything* of substance, you have to be sure who you're talking to — because everything behind the curtain is protected health information, and the rules around PHI are not suggestions.
+A healthcare provider's support line is a strange place. Patients call about device orders. Clinics call about their patients. Doctors call about both. Everyone arrives mid-thought, nobody states their whole request in one message, and before you can discuss *anything* of substance, you have to be sure who you're talking to — because everything behind the curtain is protected health information, and the rules around PHI are not suggestions.
 
 That last part shaped everything. So did another realisation that took me longer to accept: the conversations are genuinely *conversations*. Identity gets established early and relied on for the rest of the dialogue. Details accumulate over turns. People correct themselves mid-stream — "actually, the other order." Confirmations happen across message boundaries. I went in thinking multi-turn support was a feature I'd add; it turned out to be the substrate everything else sits on.
 

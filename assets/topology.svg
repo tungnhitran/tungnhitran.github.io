@@ -1,0 +1,65 @@
+<svg viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <style>
+    .title { font-size: 21px; font-weight: 700; fill: #1f2937; }
+    .label { font-size: 13px; font-style: italic; font-weight: 600; }
+    .box-title { font-size: 15px; font-weight: 700; fill: #1f2937; }
+    .box-sub { font-size: 12px; fill: #4b5563; }
+    .caption { font-size: 13px; font-style: italic; fill: #4b5563; }
+  </style>
+
+  <text x="450" y="34" text-anchor="middle" class="title">System Topology — Bounded Contexts as MCP Servers</text>
+
+  <!-- channel -->
+  <text x="450" y="72" text-anchor="middle" class="label" fill="#6b7280">[channel platform]</text>
+  <rect x="330" y="80" width="240" height="48" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="2.5"/>
+  <text x="450" y="102" text-anchor="middle" class="box-title" font-size="14">Channel platform</text>
+  <text x="450" y="119" text-anchor="middle" class="box-sub">text + session metadata in / reply out</text>
+
+  <!-- host -->
+  <text x="450" y="168" text-anchor="middle" class="label" fill="#7c3aed">[host — src/client/]</text>
+  <rect x="270" y="176" width="360" height="60" rx="12" fill="#ede9fe" stroke="#7c3aed" stroke-width="2.5"/>
+  <text x="450" y="200" text-anchor="middle" class="box-title">HOST</text>
+  <text x="450" y="220" text-anchor="middle" class="box-sub">router → planner → orchestrator → narration</text>
+
+  <defs>
+    <marker id="arr2" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L9,4 L0,8 z" fill="#374151"/>
+    </marker>
+  </defs>
+  <line x1="450" y1="128" x2="450" y2="169" stroke="#374151" stroke-width="2.5" marker-end="url(#arr2)"/>
+
+  <!-- MCP label -->
+  <text x="240" y="268" class="label" fill="#3b82f6">MCP (process boundaries)</text>
+
+  <!-- five servers -->
+  <g>
+    <rect x="60"  y="290" width="140" height="62" rx="10" fill="#fee2e2" stroke="#ef4444" stroke-width="2.5"/>
+    <text x="130" y="315" text-anchor="middle" class="box-title" font-size="14">verification</text>
+    <text x="130" y="333" text-anchor="middle" class="box-sub">identity: lookup, verify</text>
+
+    <rect x="215" y="290" width="140" height="62" rx="10" fill="#dbeafe" stroke="#3b82f6" stroke-width="2.5"/>
+    <text x="285" y="315" text-anchor="middle" class="box-title" font-size="14">patient</text>
+    <text x="285" y="333" text-anchor="middle" class="box-sub">account domain</text>
+
+    <rect x="370" y="290" width="140" height="62" rx="10" fill="#fef3c7" stroke="#f59e0b" stroke-width="2.5"/>
+    <text x="440" y="315" text-anchor="middle" class="box-title" font-size="14">order</text>
+    <text x="440" y="333" text-anchor="middle" class="box-sub">lookup, create, cancel</text>
+
+    <rect x="525" y="290" width="140" height="62" rx="10" fill="#d1fae5" stroke="#10b981" stroke-width="2.5"/>
+    <text x="595" y="315" text-anchor="middle" class="box-title" font-size="14">clinic</text>
+    <text x="595" y="333" text-anchor="middle" class="box-sub">provider domain</text>
+
+    <rect x="680" y="290" width="140" height="62" rx="10" fill="#ede9fe" stroke="#8b5cf6" stroke-width="2.5"/>
+    <text x="750" y="315" text-anchor="middle" class="box-title" font-size="14">kb</text>
+    <text x="750" y="333" text-anchor="middle" class="box-sub">product questions</text>
+  </g>
+
+  <!-- fan-out lines -->
+  <line x1="350" y1="236" x2="140" y2="285" stroke="#374151" stroke-width="2" marker-end="url(#arr2)"/>
+  <line x1="400" y1="236" x2="290" y2="285" stroke="#374151" stroke-width="2" marker-end="url(#arr2)"/>
+  <line x1="450" y1="236" x2="442" y2="285" stroke="#374151" stroke-width="2" marker-end="url(#arr2)"/>
+  <line x1="500" y1="236" x2="590" y2="285" stroke="#374151" stroke-width="2" marker-end="url(#arr2)"/>
+  <line x1="550" y1="236" x2="742" y2="285" stroke="#374151" stroke-width="2" marker-end="url(#arr2)"/>
+
+  <text x="30" y="398" class="caption">Each server speaks only its domain's language and touches only its domain's data — the boundary is a process, not a folder convention.</text>
+</svg>

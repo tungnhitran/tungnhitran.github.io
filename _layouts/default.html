@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if page.title %}{{ page.title }} · {% endif %}{{ site.title }}</title>
+  <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
+  {% feed_meta %}
+  {% seo %}
+</head>
+<body>
+  <header class="site-head">
+    <a class="brand" href="{{ '/' | relative_url }}">{{ site.title }}</a>
+  </header>
+  <main class="wrap">
+    {{ content }}
+  </main>
+  <footer class="site-foot">
+    <span>© {{ site.time | date: '%Y' }} {{ site.author }}</span>
+  </footer>
+</body>
+</html>

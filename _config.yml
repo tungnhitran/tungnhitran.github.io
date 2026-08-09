@@ -1,28 +1,24 @@
 title: Alex Tran
+author: Alex Tran
 description: >-
   Building agentic AI systems — notes on MCP, Domain-Driven Design,
   and getting LLM-driven products production-ready.
-author: Alex Tran
 
-# Theme: minima is built into GitHub Pages, no plugin install needed.
-theme: minima
-
-# IMPORTANT: this is a USER site (tungnhitran.github.io), so baseurl is empty.
-# Do NOT put "/alex-tran.github.io" here or every link breaks.
 baseurl: ""
 url: "https://tungnhitran.github.io"
-
-# Pretty post URLs: /blog/why-mcp-and-ddd/
 permalink: /blog/:title/
-
-# Melbourne time, so post dates don't show a day early.
 timezone: Australia/Melbourne
+
+# social buttons on the home profile card — EDIT THESE
+social:
+  github: "https://github.com/tungnhitran"
+  linkedin: "https://www.linkedin.com/in/your-handle/"
+  # devto: "https://dev.to/your-handle"
 
 plugins:
   - jekyll-feed
   - jekyll-seo-tag
 
-# Don't copy these into the built site.
 exclude:
   - README.md
   - Gemfile

@@ -1,4 +1,10 @@
-# Building an Agentic AI Customer Support System for a Healthcare Provider, Part 4: Scaling Up — State and Infrastructure
+---
+layout: post
+title: "Part 4: Scaling Up — State and Infrastructure"
+date: 2026-08-17 09:00:00 +1000
+series: "Building an Agentic AI Support System for a Healthcare Provider"
+tags: [redis, docker, state, scaling]
+---
 
 *Parts 1–3 were architecture. From here, the story is about making the thing production-shaped — starting with the least glamorous question in the system: where does state live?*
 

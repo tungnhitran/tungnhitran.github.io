@@ -1,4 +1,10 @@
-# Building an Agentic AI Customer Support System for a Healthcare Provider, Part 6: The Context Window Deserved Its Own Post
+---
+layout: post
+title: "Part 6: The Context Window Deserved Its Own Post"
+date: 2026-08-22 09:00:00 +1000
+series: "Building an Agentic AI Support System for a Healthcare Provider"
+tags: [llm, context-engineering, agents]
+---
 
 *The earlier parts treated the LLM's context as an implementation detail. This post is the story of how it became the main character — told in the order it actually happened: a forgetting bug, a naive fix, a stranger bug, a detour into attention research, and the boring little data structure that finally fixed everything.*
 

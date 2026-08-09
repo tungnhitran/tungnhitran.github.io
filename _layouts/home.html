@@ -1,0 +1,53 @@
+---
+layout: default
+---
+<div class="home-grid">
+  <div class="home-main">
+
+    <!-- profile card -->
+    <section class="profile">
+      <img class="avatar" src="{{ '/assets/img/avatar.svg' | relative_url }}" alt="{{ site.author }}">
+      <h1 class="profile-name">{{ site.author }}</h1>
+      <div class="profile-bio">
+        {{ content }}
+      </div>
+      <div class="social">
+        {% if site.social.github %}<a class="btn gh" href="{{ site.social.github }}">GitHub</a>{% endif %}
+        {% if site.social.linkedin %}<a class="btn li" href="{{ site.social.linkedin }}">LinkedIn</a>{% endif %}
+        {% if site.social.devto %}<a class="btn dev" href="{{ site.social.devto }}">dev.to</a>{% endif %}
+      </div>
+    </section>
+
+    <!-- contents -->
+    <section class="contents">
+      <h2>Contents</h2>
+      <ul class="post-list">
+        {% assign posts = site.posts | sort: 'date' %}
+        {% for post in posts %}
+        <li>
+          <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
+          <span class="date">{{ post.date | date: "%b %-d, %Y" }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+
+  <!-- category sidebar, counts auto-generated from tags -->
+  <aside class="cats">
+    <h3>Categories</h3>
+    <ul>
+      <li><a href="{{ '/' | relative_url }}">All <span>({{ site.posts | size }})</span></a></li>
+      {% assign all_tags = "" | split: "" %}
+      {% for post in site.posts %}
+        {% for t in post.tags %}{% assign all_tags = all_tags | push: t %}{% endfor %}
+      {% endfor %}
+      {% assign uniq = all_tags | uniq | sort_natural %}
+      {% for t in uniq %}
+        {% assign count = 0 %}
+        {% for post in site.posts %}{% if post.tags contains t %}{% assign count = count | plus: 1 %}{% endif %}{% endfor %}
+        <li><span class="tagname">{{ t }}</span> <span>({{ count }})</span></li>
+      {% endfor %}
+    </ul>
+  </aside>
+</div>

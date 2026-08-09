@@ -1,0 +1,65 @@
+<svg viewBox="0 0 900 430" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <style>
+    .title { font-size: 21px; font-weight: 700; fill: #1f2937; }
+    .subtitle { font-size: 15px; font-weight: 700; fill: #374151; }
+    .label { font-size: 13px; font-style: italic; font-weight: 600; }
+    .box-title { font-size: 14px; font-weight: 700; fill: #1f2937; }
+    .box-sub { font-size: 11.5px; fill: #4b5563; }
+    .caption { font-size: 13px; font-style: italic; fill: #4b5563; }
+    .bad { font-size: 12px; font-style: italic; fill: #dc2626; }
+    .good { font-size: 12px; font-style: italic; fill: #059669; }
+  </style>
+
+  <text x="450" y="34" text-anchor="middle" class="title">The Refactor: plain MCP → MCP + DDD</text>
+
+  <!-- V1 side -->
+  <text x="225" y="76" text-anchor="middle" class="subtitle">v1 — one server, logic in tools</text>
+  <rect x="80" y="92" width="290" height="150" rx="12" fill="#fef3c7" stroke="#f59e0b" stroke-width="2.5"/>
+  <text x="225" y="118" text-anchor="middle" class="box-title">server.py</text>
+  <text x="225" y="140" text-anchor="middle" class="box-sub">get_client_info()  ·  list_orders()</text>
+  <text x="225" y="158" text-anchor="middle" class="box-sub">lookup_order()  ·  place_order()</text>
+  <text x="225" y="182" text-anchor="middle" class="box-sub">business rules + DB calls + cache</text>
+  <text x="225" y="199" text-anchor="middle" class="box-sub">all inside the tool bodies</text>
+  <text x="225" y="222" text-anchor="middle" class="box-sub" font-style="italic">client_id supplied by the LLM (!)</text>
+
+  <text x="95" y="266" class="bad">✗ one blurred context, untestable without MCP</text>
+  <text x="95" y="286" class="bad">✗ no identity, no session — every turn a fresh start</text>
+
+  <!-- big arrow -->
+  <defs>
+    <marker id="arr3" markerWidth="12" markerHeight="10" refX="10" refY="5" orient="auto">
+      <path d="M0,0 L11,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+  <line x1="390" y1="165" x2="448" y2="165" stroke="#374151" stroke-width="3" marker-end="url(#arr3)"/>
+
+  <!-- V2 side -->
+  <text x="672" y="76" text-anchor="middle" class="subtitle">v2 — bounded contexts, layered</text>
+
+  <text x="558" y="102" text-anchor="middle" class="label" fill="#3b82f6">[client context]</text>
+  <rect x="478" y="110" width="160" height="118" rx="10" fill="#dbeafe" stroke="#3b82f6" stroke-width="2.5"/>
+  <text x="558" y="134" text-anchor="middle" class="box-sub" font-weight="700">server.py — thin ACL</text>
+  <line x1="492" y1="146" x2="624" y2="146" stroke="#3b82f6" stroke-width="1" stroke-dasharray="3 3"/>
+  <text x="558" y="166" text-anchor="middle" class="box-sub" font-weight="700">services.py — logic</text>
+  <line x1="492" y1="178" x2="624" y2="178" stroke="#3b82f6" stroke-width="1" stroke-dasharray="3 3"/>
+  <text x="558" y="198" text-anchor="middle" class="box-sub" font-weight="700">repository.py — data</text>
+  <text x="558" y="216" text-anchor="middle" class="box-sub">this domain's DB slice</text>
+
+  <text x="790" y="102" text-anchor="middle" class="label" fill="#f59e0b">[order context]</text>
+  <rect x="710" y="110" width="160" height="118" rx="10" fill="#fef3c7" stroke="#f59e0b" stroke-width="2.5"/>
+  <text x="790" y="134" text-anchor="middle" class="box-sub" font-weight="700">server.py — thin ACL</text>
+  <line x1="724" y1="146" x2="856" y2="146" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3 3"/>
+  <text x="790" y="166" text-anchor="middle" class="box-sub" font-weight="700">services.py — invariants</text>
+  <line x1="724" y1="178" x2="856" y2="178" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3 3"/>
+  <text x="790" y="198" text-anchor="middle" class="box-sub" font-weight="700">repository.py — data</text>
+  <text x="790" y="216" text-anchor="middle" class="box-sub">pending: one per client</text>
+
+  <rect x="478" y="248" width="392" height="46" rx="10" fill="#ede9fe" stroke="#7c3aed" stroke-width="2.5"/>
+  <text x="674" y="268" text-anchor="middle" class="box-sub" font-weight="700">shared/context.py — AccessContext injected by the host</text>
+  <text x="674" y="285" text-anchor="middle" class="box-sub">identity overridden in code; the model cannot act as someone else</text>
+
+  <text x="490" y="322" class="good">✓ services are plain Python — pytest, no LLM, no MCP</text>
+  <text x="490" y="342" class="good">✓ invariants live in the aggregate, not in a prompt</text>
+
+  <text x="30" y="398" class="caption">Same four tools, same behaviour — but the boundary is now a process, the logic is testable, and identity is a guarantee.</text>
+</svg>
