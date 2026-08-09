@@ -1,12 +1,12 @@
 ---
 layout: post
 title: "Part 1: Why MCP + DDD"
-date: 2026-08-10 09:00:00 +1000
+date: 2026-08-10 20:00:00 +1000
 series: "Building an Agentic AI Support System in Healthcare Context"
-tags: [mcp, ddd, agents, architecture]
+tags: [MCP, Domain-Driven Design, Agents, Architecture]
 ---
 
-*This series is the story of building an agentic AI customer-support phone system — a conversational, multi-turn assistant that verifies who's talking to it, carries context across a whole dialogue, acts on accounts, and knows when to hand off to a human. It's partly a portfolio piece and partly a letter to future-me, for the day I forget how any of this works. Everything here is a generalised reference design; no company-specific or proprietary details appear.*
+*This series is the story of building an agentic AI customer-support phone system — a conversational, multi-turn assistant that verifies who's talking to it, carries context across a whole dialogue, acts on accounts, and knows when to hand off to a human.*
 
 ## Where it started
 
