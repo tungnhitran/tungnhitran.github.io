@@ -3,11 +3,10 @@ layout: home
 title: Home
 ---
 
-I build agentic AI systems — the reasoning layer that decides what a product
-should actually *do*, and the architecture that keeps it trustworthy in production.
+I'm an AI engineer. Steering from AI/ML researcher, I recently escaped the land of notebooks with hours of training and tuning hyperprameters and wandered into production systems, where the models have to actually work. Turns out that's a whole different sport.
 
-I write about applied AI, the Model Context Protocol, and Domain-Driven Design:
-how these ideas hold up once real users, latency budgets, and messy data arrive.
-I learn by building — most of what's here started as a bug I had to understand.
+Still very much on the learning pathway for system design, especially agentic systems, which is a polite way of saying I break things and then figure out why.
 
-Views are my own.
+This is my diary, mostly. Findings I don't want to forget, and bugs I lost days to. Nearly everything here started as something confusing that I had to understand before it understood me.
+
+Views are my own. So are the bugs.
