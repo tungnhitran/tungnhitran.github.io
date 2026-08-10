@@ -10,25 +10,33 @@ tags: [MCP, Domain-Driven Design, Agents, Architecture]
 
 ## Where it started
 
-A healthcare provider's support line is a strange place. Patients call about device orders. Clinics call about their patients. Doctors call about both. Everyone arrives mid-thought, nobody states their whole request in one message, and before you can discuss *anything* of substance, you have to be sure who you're talking to — because everything behind the curtain is protected health information, and the rules around PHI are not suggestions.
+A contact centre in a healthcare context is a special place. Patients call about device orders or their records. Clinics call about their patients. Doctors call about both. Everyone arrives mid-thought, nobody states their whole request in one message, and before you can discuss *anything* of substance you have to be sure who you're talking to — because everything behind the curtain is protected health information, and the rules around PHI are not suggestions.
 
 That last part shaped everything. So did another realisation that took me longer to accept: the conversations are genuinely *conversations*. Identity gets established early and relied on for the rest of the dialogue. Details accumulate over turns. People correct themselves mid-stream — "actually, the other order." Confirmations happen across message boundaries. I went in thinking multi-turn support was a feature I'd add; it turned out to be the substrate everything else sits on.
 
-The brief I set myself: build something that greets a person, verifies them, follows the thread of what they need across a whole conversation, does it, and escalates gracefully when it can't. It should feel like talking to a competent agent — not like filling in a form one field at a time.
+The brief was simple to state and less simple to build: greet a person, verify them, follow the thread of what they need across a whole conversation, do it, and escalate gracefully when it can't. It should feel like talking to a competent agent — not like filling in a form one field at a time.
 
 ## Build vs buy, and the answer that was neither
 
-The first weeks were spent evaluating platforms — managed support suites, contact-centre products, chat infrastructure. The more demos I sat through, the clearer a line became. On one side of it: channels, queuing, handoff UIs, message plumbing. Platforms do this well, and building it yourself in 2026 would be a hobby, not a decision. On the other side: *our* logic. Looking up a patient. Verifying identity against our database. Order workflows with their own rules. And above all, the reasoning layer that figures out what a person actually wants.
+The first weeks went to evaluating platforms — managed support suites, contact-centre products, chat infrastructure. The more demos I sat through, the clearer a line became. On one side of it: channels, queuing, IVR, handoff UIs, and the message plumbing. There's no shortage of platforms here — Amazon Connect, Talkdesk, NICE CXone, Genesys, and plenty of others — and they'll all let you assemble an AI-flavoured contact centre with drag-and-drop flows, prebuilt integrations, and APIs. Crucially, they also own the parts you really shouldn't build yourself: the telephony, and the speech layer — speech-to-text on the way in, text-to-speech on the way out. Building your own STT in 2026 is a hobby, not a decision.
 
-No platform does that side. It can't — it doesn't know our domain.
+But there's a catch worth thinking about early: **replaceability**. The more of your actual *logic* lives inside the platform's flow builder, the more painful — and expensive — it becomes the day you want to switch providers. Vendor lock-in isn't a licensing line item; it's every business rule you quietly drew on someone else's canvas. A flow with a dozen decision nodes and inline Lambda calls isn't a configuration you can export — it's a rewrite waiting to happen.
 
-So the architecture became a hybrid. The platform owns everything up to "here is what the user said, as text." From that moment, it's ours: our system does the thinking and hands back the words to say. The platform sends an event with a session ID; we send back a sentence.
+So the architecture became a hybrid, and the dividing line is deliberately sharp. The platform owns everything up to "here is what the caller said, as text": the call arrives, the platform answers it, transcribes the speech, and fires a webhook to us with the transcript and a session ID. From that point it's ours — our system does the reasoning and hands back the words to say, which the platform speaks with TTS. The platform is the ears and the mouth; the brain lives on our side of the webhook, where we can test it, version it, and — if it ever comes to that — carry it to a different provider without leaving our logic behind.
 
 There was a security bonus I didn't see coming. Because the platform handles the raw channel data, none of it ever touches our servers — our backend only ever sees clean, structured values. If we're ever breached, the attacker gets a name and a date, not the raw exchange. Smaller PHI surface, one less pipeline to secure. I'll take luck when it's shaped like architecture.
 
-## Why MCP
+## MCP — Model Context Protocol — our first brick
 
-The "our logic" side needed the LLM to call tools — look up a patient, verify identity, fetch an order, create one. The default move is ad-hoc function calling: a list of functions pasted into a prompt somewhere in application code. I went with the Model Context Protocol instead, and the reasons compounded over time.
+MCP, first proposed by Anthropic in late 2024, has become hard to avoid in agentic-system design, and its main pitch is plug-and-play: it lets the LLM (the *brain*) reach external resources (the *arms*) to get real work done. I'd heard about it a couple of years back but never sat down with it properly. And when I finally did, a friend and I both tripped over the same first-glance mistake. You see "MCP server" and "MCP client" everywhere and assume it's a two-part client/server setup with the LLM on one end — but there are actually *three* roles, and the one people get wrong is the Host:
+
+1. **MCP Host** — the application you build: the user-facing program that *embeds* the LLM and owns the whole experience. It decides which servers to connect to, manages the client connections, and enforces policy. The LLM lives *inside* the host; it isn't the host. (This is the bit we got wrong — we'd pictured the LLM sitting at the top, when really it's one component the host orchestrates.)
+2. **MCP Client** — a lightweight connector embedded in the host, holding a one-to-one connection to a single server: it discovers that server's tools and shuttles calls back and forth.
+3. **MCP Server** — an independent process where the work happens: querying data, looking things up, calling out to other systems, each exposing its tools through the protocol.
+
+That distinction turned out to matter for us. In this system the Host is our own `src/client/` code — the router, planner, orchestrator, and narration — and the LLM is a provider it calls when it needs reasoning, not the thing in charge. Keep that picture; it's what makes the DDD story below click.
+
+Our side of the line needed the LLM to call tools — look up a patient, verify identity, fetch an order, create one. The default move for that is ad-hoc function calling: a list of functions pasted into a prompt somewhere in application code. I went with MCP instead, and the reasons compounded over time.
 
 Tools live in servers, not in prompt-assembly code — each MCP server owns its tools, their schemas, and the data behind them, and the host discovers them rather than hardcoding them. The server boundary is a real protocol boundary, so servers can be built, tested, and deployed independently; when one domain's workflow started changing weekly (it did), only that server changed. And — the actual point of this post — MCP maps almost suspiciously well onto Domain-Driven Design.
 
