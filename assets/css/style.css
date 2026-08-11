@@ -65,21 +65,23 @@ a:hover{text-decoration:underline}
 .post-body blockquote{border-left:3px solid var(--line); margin:18px 0; padding:4px 16px; color:var(--muted)}
 .post-nav{margin-top:30px}
 
-/* ---- post page with series sidebar ---- */
+/* ---- post page with right-hand table of contents ---- */
 .post-grid{display:grid; grid-template-columns:1fr 240px; gap:44px; align-items:start; padding-top:20px}
 .post-grid .post{margin:0; max-width:760px}
 .post-side{position:sticky; top:24px}
 @media(max-width:900px){
   .post-grid{grid-template-columns:1fr}
-  .post-side{position:static; margin-bottom:20px; order:-1}
+  .post-side{position:static; margin-bottom:24px; order:-1}
 }
-.series-nav{border:1px solid var(--line); border-radius:10px; padding:16px 16px 14px; background:#fafbfc}
-.series-nav-title{margin:0 0 12px; font-size:12px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); line-height:1.4}
-.series-nav ol{list-style:none; margin:0; padding:0; counter-reset:sn}
-.series-nav li{counter-increment:sn; position:relative; padding:7px 0 7px 26px; font-size:14px; line-height:1.45; border-top:1px solid var(--line)}
-.series-nav li:first-child{border-top:none}
-.series-nav li::before{content:counter(sn); position:absolute; left:0; top:7px; width:18px; height:18px; border-radius:50%; background:var(--chip); color:var(--muted); font-size:11px; font-weight:700; text-align:center; line-height:18px}
-.series-nav li.current::before{background:var(--link); color:#fff}
-.series-nav li.current span{font-weight:700; color:var(--ink)}
-.series-nav a{color:var(--muted)}
-.series-nav a:hover{color:var(--link); text-decoration:none}
+.toc{border-left:2px solid var(--line); padding:2px 0 2px 16px}
+@media(max-width:900px){.toc{border-left:none; padding-left:0; border:1px solid var(--line); border-radius:10px; padding:14px 16px; background:#fafbfc}}
+.toc-title{margin:0 0 10px; font-size:12px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:var(--muted)}
+.toc ul{list-style:none; margin:0; padding:0}
+.toc li{margin:0}
+.toc a{display:block; padding:5px 0; font-size:13.5px; line-height:1.4; color:var(--muted); border-left:2px solid transparent; margin-left:-18px; padding-left:16px}
+.toc a:hover{color:var(--ink); text-decoration:none}
+.toc a.active{color:var(--link); border-left-color:var(--link); font-weight:600}
+.toc-h3 a{padding-left:30px; font-size:13px}
+/* smooth scroll + offset so headings don't hide under the top */
+html{scroll-behavior:smooth}
+.post-body h2, .post-body h3{scroll-margin-top:20px}
