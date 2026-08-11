@@ -57,7 +57,6 @@ src/
     ├── verification/  ← identity: lookup, verify
     ├── patient/       ← patient account domain
     ├── order/         ← device orders: lookup, create, cancel
-    ├── clinic/        ← clinic/provider domain
     └── kb/            ← knowledge base / product questions
 ```
 
