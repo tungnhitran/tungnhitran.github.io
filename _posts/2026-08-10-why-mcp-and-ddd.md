@@ -79,7 +79,7 @@ Don't build the channel layer; build the reasoning layer: all the differentiatin
 
 ## References
 
-- Chris Hughes, *Building Scalable MCP Servers with Domain-Driven Design*: https://medium.com/@chris.p.hughes10/building-scalable-mcp-servers-with-domain-driven-design-fb9454d4c726 (code: https://github.com/Chris-hughes10/mcp-ddd)
+- Chris Hughes, [*Building Scalable MCP Servers with Domain-Driven Design*](https://medium.com/@chris.p.hughes10/building-scalable-mcp-servers-with-domain-driven-design-fb9454d4c726) ([code](https://github.com/Chris-hughes10/mcp-ddd))
 - Model Context Protocol: https://modelcontextprotocol.io
 
 *Next: Part 2 — MCP under the hood: one conversational turn end-to-end, and what multi-turn actually demands.*

@@ -54,7 +54,7 @@ a:hover{text-decoration:underline}
 .post-meta{color:var(--muted); font-size:14px; margin:0 0 30px}
 .chip{display:inline-block; background:var(--chip); color:var(--muted); border-radius:6px; padding:2px 8px; margin-left:4px; font-size:12px}
 .post-body{font-size:18px}
-.post-body h2{font-size:26px; font-weight:800; margin:38px 0 12px; letter-spacing:-.01em}
+.post-body h2{font-size:26px; font-weight:800; margin:38px 0 14px; letter-spacing:-.01em; padding-bottom:8px; border-bottom:1px solid var(--line)}
 .post-body h3{font-size:21px; font-weight:700; margin:28px 0 10px}
 .post-body pre{background:#f6f8fa; border:1px solid var(--line); border-radius:8px; padding:14px 16px; overflow:auto; font-size:14px}
 .post-body code{background:#f6f8fa; border-radius:4px; padding:1px 5px; font-size:14px}
@@ -64,3 +64,22 @@ a:hover{text-decoration:underline}
 .post-body img{max-width:100%; height:auto}
 .post-body blockquote{border-left:3px solid var(--line); margin:18px 0; padding:4px 16px; color:var(--muted)}
 .post-nav{margin-top:30px}
+
+/* ---- post page with series sidebar ---- */
+.post-grid{display:grid; grid-template-columns:1fr 240px; gap:44px; align-items:start; padding-top:20px}
+.post-grid .post{margin:0; max-width:760px}
+.post-side{position:sticky; top:24px}
+@media(max-width:900px){
+  .post-grid{grid-template-columns:1fr}
+  .post-side{position:static; margin-bottom:20px; order:-1}
+}
+.series-nav{border:1px solid var(--line); border-radius:10px; padding:16px 16px 14px; background:#fafbfc}
+.series-nav-title{margin:0 0 12px; font-size:12px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); line-height:1.4}
+.series-nav ol{list-style:none; margin:0; padding:0; counter-reset:sn}
+.series-nav li{counter-increment:sn; position:relative; padding:7px 0 7px 26px; font-size:14px; line-height:1.45; border-top:1px solid var(--line)}
+.series-nav li:first-child{border-top:none}
+.series-nav li::before{content:counter(sn); position:absolute; left:0; top:7px; width:18px; height:18px; border-radius:50%; background:var(--chip); color:var(--muted); font-size:11px; font-weight:700; text-align:center; line-height:18px}
+.series-nav li.current::before{background:var(--link); color:#fff}
+.series-nav li.current span{font-weight:700; color:var(--ink)}
+.series-nav a{color:var(--muted)}
+.series-nav a:hover{color:var(--link); text-decoration:none}
