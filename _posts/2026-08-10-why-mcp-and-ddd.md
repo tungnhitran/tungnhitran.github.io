@@ -76,10 +76,10 @@ There's a second reason I avoided handing the whole workflow to a free-running a
 ## What I'd tell past-me
 
 Don't build the channel layer; build the reasoning layer: all the differentiating value lives there. Decide early what the vendor platform is allowed to see and log, because PHI in someone's flow-variable debug logs is a real incident waiting to happen. And DDD is not ceremony when your bounded contexts are literal processes. It's the cheapest insurance you'll ever buy against a codebase turning into soup over months of iteration. I know, because months of iteration is exactly what came next.
-
+ 
 ## References
-
+ 
 - Chris Hughes, [*Building Scalable MCP Servers with Domain-Driven Design*](https://medium.com/@chris.p.hughes10/building-scalable-mcp-servers-with-domain-driven-design-fb9454d4c726) ([code](https://github.com/Chris-hughes10/mcp-ddd))
-- Model Context Protocol: https://modelcontextprotocol.io
+- [Model Context Protocol](https://modelcontextprotocol.io)
 
 *Next: Part 2 — MCP under the hood: one conversational turn end-to-end, and what multi-turn actually demands.*
