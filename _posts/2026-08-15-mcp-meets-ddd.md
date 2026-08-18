@@ -6,9 +6,9 @@ series: "Building an Agentic AI Support System in Healthcare Context"
 tags: [MCP, Domain-Driven Design, Bounded Contexts]
 ---
 
-*Part 2 left us with one server that worked but had started to hurt — every domain in one file, no wall between them, "easy to add a tool" curdling into "scared to add a tool." This part is the fix, and a claim I'll try to earn along the way: MCP servers are the most literal implementation of DDD bounded contexts I've ever worked with.*
+*Part 2 left us with one server that worked but had started to hurt since every domain in one file, no wall between them, "easy to add a tool" curdling into "scared to add a tool." This part is the fix, and a claim I'll try to earn along the way: MCP servers are the most literal implementation of DDD bounded contexts I've ever worked with.*
 
-## The refactor, in one sentence
+## The refactor
 
 Take the crowded server from Part 2 and split it along its domains — one server per bounded context:
 
