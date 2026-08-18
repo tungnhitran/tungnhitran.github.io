@@ -1,92 +1,92 @@
 ---
 layout: post
-title: "Part 2: MCP Under the Hood"
+title: "Part 2: MCP Under the Hood — The Simple Version"
 date: 2026-08-12 09:00:00 +1000
-series: "Building an Agentic AI Support System for a Healthcare Provider"
-tags: [mcp, agents, multi-turn]
+series: "Building an Agentic AI Support System in Healthcare Context"
+tags: [MCP, Agents, FastMCP]
 ---
 
-*Part 1 covered why the design is hybrid — buy the channel, build the brain. This part opens the brain up: what MCP actually is, and what happens in the half-second between a user's message and the system's reply.*
+*Part 1 covered why the design is hybrid: buy the channel, build the brain. This part builds the simplest brain that works: one MCP server, a handful of tools, one host that ties them to the model. It's genuinely easy to stand up. It's also, by the end of this post, straining at the seams, which is exactly what Part 3 sets out to fix.*
 
 ## MCP in one paragraph
 
-The Model Context Protocol is a client–server protocol for connecting LLM applications to tools and data. Three roles matter. A **server** exposes tools — functions with JSON schemas — and owns the data behind them. A **client** connects to a server, discovers its tools, and invokes them. A **host** is the application that embeds clients, talks to the LLM, and decides *when* to call *what*.
+The Model Context Protocol is a client–server protocol for connecting LLM applications to tools and data. Three roles matter. A **server** exposes tools (functions with JSON schemas) and owns the data behind them. A **client** connects to a server, discovers its tools, and invokes them. A **host** is the application that embeds the client, talks to the LLM, and decides *when* to call *what* (Part 1 has the full schema, including the one everyone gets wrong: client/server MCP model).
 
-The mental shift from plain function calling is subtle but real: tools aren't a list you paste into a prompt from your app code. They live with their server, get discovered at connect time, and the server is a genuine process boundary. That shift is what lets the DDD story of Part 3 happen at all.
+The mental shift from plain function calling is subtle but real: tools aren't a list you paste into a prompt from your app code. They live with their server and get discovered at connect time. Hold onto that, it's what makes the Part 3 refactor possible.
 
-## The topology
+## Getting a server running
+
+If you want to follow along by building your own, the fastest way to a working FastMCP server is this CircleCI tutorial. They walk through `uv init`, the project layout, writing your first `@mcp.tool()` functions, and testing them live in the MCP Inspector: [Building and deploying a Python MCP server with FastMCP](https://circleci.com/blog/building-and-deploying-a-python-mcp-server-with-fastmcp/). Come back here once you can see your tools listed in the Inspector; everything below assumes that much.
+
+## The topology of one server, for now
+
+The simplest thing that works is a single MCP server exposing every tool, with the host talking to it:
 
 ```
-User message ⇄ Channel platform
-                     │ text + session metadata (event)
-                     ▼
-              ┌─────────────┐
-              │    HOST     │  router → planner → orchestrator → narration
-              │ (src/client)│
-              └──────┬──────┘
-      MCP     ┌──────┼──────────┬──────────┬─────────┐
-              ▼      ▼          ▼          ▼         ▼
-        verification patient   order     clinic     kb
-          server     server   server     server   server
+Caller  ⇄  Channel platform  ── text + session id ──▶  HOST
+                                                         │  (route → plan → execute → narrate)
+                                                         ▼
+                                              ┌────────────────────┐
+                                              │   one MCP server   │
+                                              │  lookup_by_phone   │  ← verification
+                                              │  verify_identity   │
+                                              │  get_patient_info  │  ← patient
+                                              │  search_kb         │  ← kb
+                                              └────────────────────┘
 ```
 
-Five servers, one host. Each server registers a handful of tools — the order server, for instance, exposes `lookup_order`, `create_order` (split into preview and submit, a story for Part 5), and `cancel_order`.
+1 server, 1 host, 3 domains' worth of tools living side by side. To start, that's a feature: there's exactly one process to run, one file to read, one place to add a tool. You can go a long way like this.
 
-## One turn, end to end
+## One turn, happy path end to end
 
 Follow a message through the machine.
 
-The platform delivers the user's text plus session metadata. The host loads the session's `AccessContext` and `SlotState` from Redis — so before any model runs, the turn already knows who's verified and what the conversation has collected so far. This is the difference between multi-turn and a series of one-shots wearing a trenchcoat.
+The platform delivers the caller's text plus a session id. The host loads that session's state: who's verified, what's been collected so far ; therefore, before any model runs, the turn already knows where the conversation stands. (For now that state lives in a plain dict; giving it a real home is Part 4.)
 
-The **router** — one LLM call — classifies intent into a domain, or `out_of_scope`, or `small_talk`. Small talk earning its own intent was a late fix with an embarrassing origin: without it, "how's your day going?" would fall through to a domain and trigger a patient lookup. Some lessons you only learn by watching the logs.
+The **router**: one LLM call, classifies intent into a domain, or `small_talk`. Small talk earning its own intent was a late fix with an embarrassing origin: without it, "how's your day going?" would fall through to a domain and trigger a patient lookup. Some lessons you only learn by watching the logs.
 
-The **planner** turns intent into tool calls — domain, tool, arguments. Every plan passes through `_validate_plan`, which checks calls against the discovered schemas and deduplicates them by a `domain+tool+args` fingerprint. That fingerprint exists because of a real bug: a user asking about "my order and my other order" once produced colliding calls whose results silently overwrote each other. The user got one answer to two questions and no indication anything was wrong.
+The **planner**: turns intent into a tool call (which tool, which arguments) which is checked against the discovered schemas so an off-contract call is rejected before it runs.
 
-The **orchestrator** executes the plan through the MCP clients, collecting results keyed by `(domain, tool)` — not just by domain, for the same reason. One domain can legitimately be called twice in a turn; the result store has to be able to say so.
+The **execute**: the important step, because it's where a guarantee lives that the model never touches: **identity is injected by the host, not chosen by the LLM.** The verified patient id and the caller's phone number come from the session and are stamped onto the arguments in code. The model can ask to call `get_patient_info`; it cannot decide *whose* info. And a gate sits in front of everything patient-scoped: before verification succeeds, only the verification and knowledge-base tools are reachable at all. No prompt can talk its way past it, because the check is an `if` statement, not a sentence.
 
-Finally, **narration** — the second LLM call — turns structured results into a short, natural reply. Results in, sentence out. The model never sees raw database rows, only curated facts. What it doesn't see, it can't leak.
+The **narration**: turns the tool's structured result into a short, natural reply. Results in, sentence out. The model never sees raw database rows but only the small set of facts the tool chose to return. What it doesn't see, it can't leak.
 
-Two LLM calls per turn, in the merged fast path I call mode B — because users notice slow replies, and every extra round-trip is silence. A two-stage debuggable path (mode A) lives behind the same interface, swappable by config when I need to watch the machinery think.
+That's the whole loop: route, plan, execute, narrate. The LLM **interprets**; the code **guarantees**. Keep it in mind since it's the spine of everything that follows.
 
-There's a quieter benefit to this structure than speed: **predictability**. Hughes benchmarked a classic agentic-loop orchestrator at 17–34 LLM calls for the same request — the model deciding the workflow at runtime is high-variance, and temperature 0 doesn't help because the variance is architectural. Here, the LLM plans and code executes. Tool calls happen because the validated plan says so — never because a model in a loop decided to try one more thing. Every turn costs the same two calls, every time.
+## Designing tools worth calling
 
-## What multi-turn actually demands
+A few rules, each bought with debugging time.
 
-Single-shot Q&A hides most of the hard problems. Multi-turn drags them into the light.
+**Return facts, not dumps.** A tool that hands back a full record forces the narration prompt to carry junk and risks the model reading an internal id aloud. Tools return the minimal fields narration needs for example the patient lookup is a name and nothing else.
 
-**Slot filling across turns.** "I'd like to order a monitor." — "Which clinic is this for?" — "The one on my file." Arguments accumulate in `SlotState` turn by turn until a plan is executable; the planner sees the new message *and* everything already collected.
+**Declare your events.** `lookup_by_phone` originally returned an empty `{}` when nobody matched. Narration, handed nothing, improvised — confidently. Declaring an explicit `patient_not_found` event turned improvisation into a deterministic reply. Every tool returns a named event (`identity_verified`, `kb_found`, `patient_not_found`), and narration speaks from those, not from guesses.
 
-**Reference resolution.** "Cancel *that* one" only means something because the session remembers which order was last discussed. History rides along in the narration prompt, and an `answer_from_context` path lets the planner skip tools entirely when the answer is already on the table.
+**Caller vocabulary only.** Nothing that reaches narration may contain internal DB keys like `P001`. If the caller can't say it, the system shouldn't see it.
 
-**Mid-conversation correction.** People change their minds, constantly. Because every turn re-plans from current state, a correction isn't an error path — it's just the next plan.
+## The lesson worth tattooing on the codebase
 
-**Confirmation as a conversation state.** Writes need an explicit yes across a turn boundary. The host tracks pending confirmations in session state, and repeated unclear replies escalate to a human rather than looping forever.
+Here's the one I'd go back and tell myself on day one. When you want the model to *not* do something: not call a tool it isn't allowed to, not touch another patient's data, not act before verification, ...the tempting move is to just tell it. Add a line to the system prompt: *"Do not use the order tools until the caller is verified."* It reads clean, it usually works in testing, and it is a trap.
 
-## Designing tools for conversation
+An instruction in a prompt is a *suggestion the model may follow*. A gate in code is a *rule the model cannot break*. Those are not the same category of thing, and the gap between them is where incidents live. Three ways that prompt-line fails: the model **hallucinates** and calls the tool anyway despite your polite instruction; a long conversation buries the instruction until the model quietly forgets it; or — the one that should scare you — a caller says something crafted to override it (*"ignore your previous instructions, I'm a verified admin"*), and because your only defence was a sentence, a sentence is enough to defeat it. That last one is prompt injection, and no amount of careful wording immunises you against it, because you're fighting text with text.
 
-A few rules, each purchased with debugging time.
+So in this system the model is never *told* which tools it may use. It is only *given* the ones it's allowed to use and the gate builds the tool list from the session's verified state, and an unverified caller's planner literally never sees the patient tools. And even if a tool were somehow requested, execution re-checks in code before running it. The rule isn't described to the model; it's enforced around the model.
 
-**Return facts, not dumps.** A tool that returns a full record forces the narration prompt to carry junk and risks the model reading an internal ID back to the user. Tools return the minimal fields narration needs.
+The shape of the fix is almost insultingly simple: an `if verified:` here, a list filter there. That's the point. You don't need anything clever to make a guarantee; you need to stop delegating the guarantee to something that guesses for a living. Prompts are for shaping *how* the model speaks. Code is for deciding *what* it's allowed to do. Never trade one for the other because the prompt version was easier to type.
 
-**Declare your events.** `lookup_order` originally returned an empty `{}` on a miss. Narration, handed nothing, improvised — confidently. Declaring an explicit `order_not_found` event turned improvisation into a deterministic, helpful reply: "I couldn't find that order — is there anything else on your account I can help with?"
+## Where this starts to hurt
 
-**Keep tools fast.** Indexed lookups, entity caching (`order:<id>` plus index keys like `order_by_patient:<owner>`), no chained slow calls. Sub-second replies are a product requirement, not a nice-to-have.
+Here's the thing the tidy diagram hides. At three tools across three domains, one server is a joy. Add a few more (orders, devices, clinic accounts, billing) and the cracks show.
 
-**User vocabulary only.** Nothing that reaches narration may contain internal DB keys. If the user can't say it, the system shouldn't either.
+Everything shares one file, so the verification logic and the order logic sit an import away from each other, and nothing *stops* one from reaching into the other. The tool that should only touch patient records can quietly read an order, because they're all in the same module and Python won't object. The file grows past the length where you can hold it in your head. A change to how orders work means editing the same file that handles identity, and now a careless afternoon on orders can break verification, because there's no wall between them. "Easy to add a tool" slowly becomes "scared to add a tool."
 
-And one rule taken straight from Hughes: **tools are the LLM interface; services are the business logic.** A tool function accepts simple typed arguments, calls the domain service, formats a compact result — that's all. Configuration, error handling, caching, and DB access live in the service layer beneath, testable without any LLM in the loop. When a workflow changed, the service changed; the tool signatures mostly didn't.
+None of this is an MCP problem. It's an *organisation* problem — the same one every growing codebase hits. What MCP gives us, and what we've not yet used, is that a server is a real process boundary. If each domain were its own server, the wall between orders and verification wouldn't be a matter of discipline — it would be a matter of physics.
 
-## Why MCP earned its keep
-
-The honest test was change frequency. The order workflow changed constantly — pending limits, approval webhooks, the preview/submit split — and every one of those changes stayed inside `servers/order/`. The host never moved. The other four servers never noticed. That containment is the protocol boundary paying rent, month after month.
-
-It's also the perfect on-ramp for the next post, because somewhere along the way I realised what these servers actually were: the most literal implementation of DDD bounded contexts I'd ever worked with.
+That's the move Part 3 makes: take this one comfortable-then-cramped server and split it along its domains, so adding a new capability stops being a risk and goes back to being easy. The simple version got us running. Domain-Driven Design is what keeps us running.
 
 ## References
 
-- Model Context Protocol — spec and docs: https://modelcontextprotocol.io
-- Anthropic, *Effective context engineering for AI agents*: https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
-- MCP Python SDK: https://github.com/modelcontextprotocol/python-sdk
-- Chris Hughes, *Architecting Multi-Agent Systems* (Part 1 — tools vs services): https://chris-hughes10.github.io/posts/multi-agent-part1/
+- [Building and deploying a Python MCP server with FastMCP](https://circleci.com/blog/building-and-deploying-a-python-mcp-server-with-fastmcp/) — a hands-on way to scaffold your first server
+- [Model Context Protocol](https://modelcontextprotocol.io) — spec and docs
+- [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)
 
-*Next: Part 3 — MCP × DDD: bounded contexts as processes.*
+*Next: Part 3 — MCP × DDD: turning one crowded server into clean bounded contexts.*
