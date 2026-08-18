@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Part 5: Scaling Up — Orchestration, Guardrails, Observability"
-date: 2026-08-19 09:00:00 +1000
+date: 2026-08-25 09:00:00 +1000
 series: "Building an Agentic AI Support System for a Healthcare Provider"
 tags: [orchestration, guardrails, observability]
 ---
