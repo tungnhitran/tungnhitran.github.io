@@ -2,11 +2,29 @@
 layout: post
 title: "Part 3: MCP Meets DDD"
 date: 2026-08-15 09:00:00 +1000
-series: "Building an Agentic AI Support System for a Healthcare Provider"
-tags: [mcp, ddd, bounded-contexts]
+series: "Building an Agentic AI Support System in Healthcare Context"
+tags: [MCP, Domain-Driven Design, Bounded Contexts]
 ---
 
-*Part 2 opened up the protocol. This part is about the design philosophy layered on top — and a claim I'll try to earn: MCP servers are the most literal implementation of DDD bounded contexts I've ever worked with.*
+*Part 2 left us with one server that worked but had started to hurt — every domain in one file, no wall between them, "easy to add a tool" curdling into "scared to add a tool." This part is the fix, and a claim I'll try to earn along the way: MCP servers are the most literal implementation of DDD bounded contexts I've ever worked with.*
+
+## The refactor, in one sentence
+
+Take the crowded server from Part 2 and split it along its domains — one server per bounded context:
+
+```
+                         ┌──────────────┐
+              ┌────────▶ │ verification │  lookup_by_phone, verify_identity
+              │          └──────────────┘
+   ┌──────┐   │          ┌──────────────┐
+   │ HOST │ ──┼────────▶ │   patient    │  get_patient_info
+   └──────┘   │          └──────────────┘
+              │          ┌──────────────┐
+              └────────▶ │      kb      │  search_knowledge_base
+                         └──────────────┘
+```
+
+Same tools, same behaviour as Part 2. But now the wall between patient logic and verification logic isn't discipline — it's a process boundary. The patient server *cannot* read an order, because the order server is a different process it can only reach through a declared tool. The thing we wanted in Part 2 — physics instead of good intentions — is now just how the system is shaped. And adding a new domain? A new folder, a new server, zero risk to the ones already running. Below is why that mapping onto DDD is so exact.
 
 ## DDD, pointed at real code
 
@@ -48,6 +66,59 @@ Here's the thing about bounded contexts in a monolith: they're a discipline. A f
 With each context as an MCP server, the discipline becomes physics. The boundary is a process — crossing it requires a declared tool with a schema, and there is no sneaky import. The published language is machine-checked, because tool schemas are the context's public contract and `_validate_plan` rejects anything off-contract on every single call. Context maps are visible: the host is the only place domains compose, so reading `src/client/` tells you the entire inter-domain choreography — there's nowhere else to look. And teams scale along contexts: one domain's workflow can change weekly without touching verification. Conway's Law, working *for* you, for once.
 
 The inverse deserves saying just as plainly: **DDD is what makes a multi-server MCP system sane.** Without domain thinking, "more MCP servers" just means more places for logic to hide. The domain decomposition tells you where the boundaries belong. MCP merely — usefully, physically — enforces them.
+
+## The real payoff: add a domain, inherit the machinery
+
+Here's where the split stops being tidy architecture and starts paying rent, and it's the part I didn't fully appreciate until the fourth domain went in.
+
+But first, the mechanism that makes it possible — and it's the quiet beauty of MCP. You never *register* a tool with the host imperatively. You **declare** it. Each MCP server publishes a manifest: for every tool, a name, a description, and a JSON schema of its arguments (which are required, which are optional, their types). The host doesn't hardcode any of this — it calls `list_tools` at connect time and *discovers* what each server offers.
+
+That single fact is what makes everything below automatic. The host doesn't need to be taught that the order server has a `lookup_order` tool taking a required `order_id`. It reads that from the manifest. Here's what that actually looks like — this is (lightly trimmed) what the order server hands the host when it calls `list_tools`:
+
+```json
+{
+  "name": "lookup_order",
+  "description": "Look up one of the caller's orders by its ID.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "order_id": { "type": "string", "description": "The order number, e.g. 1002" }
+    },
+    "required": ["order_id"]
+  }
+}
+```
+
+That's the whole contract, and no host-side code mentions `lookup_order` by name anywhere. Look how much the host gets from just those few lines:
+
+- The **router** learns the order domain has a way to look orders up, so it can send "where's my order?" here.
+- The **planner** learns the tool takes one argument, `order_id`, a string — so it knows exactly what to pass.
+- **Slot-filling** reads `"required": ["order_id"]` and, when the caller hasn't given an order number, generates the question to ask for it. That behaviour comes *entirely* from that one line in the schema — I wrote no "ask for the order number" logic anywhere.
+- **Narration** has the human-readable `description` to ground its phrasing.
+
+Change the tool — add an optional `include_history` argument, say — and every one of those adjusts on the next connect, because they all read from the manifest rather than from anything hand-wired.
+
+You describe *what a tool is* in the manifest; the host figures out *how to drive it* from that description. Declare, don't wire. A new capability is a schema entry, and the machinery meets it there.
+
+Now the payoff that mechanism buys.
+
+Some logic isn't *about* any one domain — it's about how the whole conversation behaves. The clearest example in this system is the escalation rule: after three unproductive turns — three failed verifications, three tool calls that got nowhere, three "I didn't catch that" — the caller goes to a human instead of looping forever. That "three strikes" counter has nothing to do with orders or patients or the knowledge base specifically. It's a property of *the host*, not of any domain.
+
+So it lives in the host, once. The host runs every turn for every domain, counts unproductive outcomes, and trips the escalation when the count hits the threshold. And here's the payoff: **when I add a new domain, it gets three-strikes escalation for free.** I don't wire it up. I don't remember to add it. A new server shows up exposing its tools, the host routes to it like any other, and the moment that domain produces three dead-end turns, the same escalation fires — because the counter was never the domain's job in the first place.
+
+It's not alone. A whole layer of behaviour lives in the host, defined once, applied to every turn of every domain — and inherited by each new bounded context the day it's born:
+
+- **The verification gate** — no patient-scoped tool runs until identity is established. A new domain's sensitive tools are gated automatically, because the gate lives above the domains, not inside them.
+- **Identity injection** — the verified patient id and phone are stamped onto tool arguments by the host, never chosen by the model. New tools that need them just receive them.
+- **Three-strikes escalation** — three unproductive turns and the caller goes to a human. Domain-agnostic by construction.
+- **Slot-filling** *(generates language)* — a tool needs an order number and the caller hasn't said one? The host notices the missing argument, holds the call, and **produces the question itself** — "Sure, what's the order number?" The domain never sees the half-formed request; it's only called once the slots are full. A new domain gets this the instant it declares a tool with a required argument, writing zero words of dialogue.
+- **Confirmation before writes** *(generates language)* — before anything irreversible, the host **generates** "Just to confirm — you want to cancel order 1002, yes?" and waits for the yes across a turn boundary. Declare a write-shaped tool and it's protected on day one.
+- **Narration** — turning a tool's structured result into a natural sentence is a host step, so a new domain returns facts and gets fluent replies for free.
+- **Request logging & the audit trail** — every turn recorded the same way, no matter which domain served it.
+
+Notice the two marked *generates language*. Most cross-cutting services just gate or count — they block, route, or tally. But slot-filling and confirmation go further: they **write the actual words** sent back to the caller, on the domain's behalf. That's the difference between a shared *rule* and a shared *voice*. The upshot is the same either way — a new domain server can be almost pure data access, *here are my tools, here's what they return*, and still behave like a polished conversational agent, because the parts that make it *feel* conversational (asking for what's missing, confirming before acting, escalating when stuck) were never its job to build.
+
+This is the division that makes the system *expandable* rather than merely *organised*. DDD tells you where the domain boundaries go; putting the cross-cutting services in the host means crossing one of those boundaries — adding a whole new domain — costs almost nothing, because everything that should apply to "every conversation" already does. A monolith can do this too, in principle. But in a monolith "shared service every domain uses" and "thing any domain can accidentally reach into and break" are the same code with the same access. Here the host's services are above the domains and the domains can't touch each other — so shared behaviour is inherited, not entangled.
 
 ## The pattern we refused
 
