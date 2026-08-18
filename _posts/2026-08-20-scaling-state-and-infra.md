@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Part 4: Scaling Up — State and Infrastructure"
-date: 2026-08-17 09:00:00 +1000
+date: 2026-08-20 09:00:00 +1000
 series: "Building an Agentic AI Support System for a Healthcare Provider"
 tags: [redis, docker, state, scaling]
 ---
