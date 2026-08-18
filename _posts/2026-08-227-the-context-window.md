@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Part 6: The Context Window Deserved Its Own Post"
-date: 2026-08-22 09:00:00 +1000
+date: 2026-08-27 09:00:00 +1000
 series: "Building an Agentic AI Support System for a Healthcare Provider"
 tags: [llm, context-engineering, agents]
 ---
