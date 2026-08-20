@@ -14,7 +14,7 @@ timezone: Australia/Melbourne
 social:
   github: "https://github.com/tungnhitran"
   linkedin: "https://www.linkedin.com/in/tung-nhi-tran/"
-  # devto: "https://dev.to/your-handle"
+  devto: "https://tungnhitran.netlify.app/"
 
 plugins:
   - jekyll-feed
