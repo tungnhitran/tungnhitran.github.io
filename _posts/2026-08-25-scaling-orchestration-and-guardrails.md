@@ -15,7 +15,7 @@ Every safety-critical property in this system is a structural guarantee: enforce
  
 Writes are split into **preview and submit**: preview computes and describes the action, submit executes it, and submit only runs after an explicit confirmation state the host tracks. The model cannot "accidentally" write; the pathway doesn't exist. Identity is **injected**, never asserted: the verified `AccessContext` rides into every domain call from the host, so the model structurally cannot claim to be someone else. A **gate** stops every domain tool until verification succeeds — enforced in the orchestrator, not requested in a prompt. And confirmations follow a **contract**: an explicit yes across a turn boundary, with repeated unclear replies ticking a handoff counter until the conversation escalates to a human instead of looping forever.
  
-Look at what's left for the LLM: intent classification, argument extraction, narration. Every one of them recoverable. A misroute produces a clarifying question, not a bad write. That's not an accident — it's the design. The model gets exactly the jobs where being wrong is cheap.
+Look at what's left for the LLM: intent classification, argument extraction, narration. Every one of them recoverable. A misroute produces a clarifying question, not a bad write. That's not an accident, it's the design. The model gets exactly the jobs where being wrong is cheap.
  
 Honesty demands the other list too, as of the time of writing: timeouts, retry policy, per-session budget ceilings, and durable state beyond Redis TTLs were all still thin. Writing the weakness list down felt bad, and was half the roadmap.
  
