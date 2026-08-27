@@ -3,17 +3,17 @@ layout: post
 title: "Part 5: Scaling Up: Orchestration, Guardrails, Observability"
 date: 2026-08-25 09:00:00 +1000
 series: "Building an Agentic AI Support System for a Healthcare Provider"
-tags: [orchestration, guardrails, observability]
+tags: [Orchestration, Guardrails, Observability]
 ---
 
  
-*Part 4 was state and infrastructure. This part is the harder scaling problem: keeping an LLM-driven system trustworthy as it does more. One idea organises everything here, and it crystallised slowly over months of fixes — the split between what the system guarantees and what the model merely interprets.*
+*Part 4 was state and infrastructure. This part is the harder scaling problem: keeping an LLM-driven system trustworthy as it does more. One idea organises everything here, and it crystallised slowly over months of fixes, the split between what the system guarantees and what the model merely interprets.*
  
 ## The line
  
 Every safety-critical property in this system is a structural guarantee: enforced in code, holding no matter what the LLM outputs.
  
-Writes are split into **preview and submit** — preview computes and describes the action, submit executes it, and submit only runs after an explicit confirmation state the host tracks. The model cannot "accidentally" write; the pathway doesn't exist. Identity is **injected**, never asserted: the verified `AccessContext` rides into every domain call from the host, so the model structurally cannot claim to be someone else. A **gate** stops every domain tool until verification succeeds — enforced in the orchestrator, not requested in a prompt. And confirmations follow a **contract**: an explicit yes across a turn boundary, with repeated unclear replies ticking a handoff counter until the conversation escalates to a human instead of looping forever.
+Writes are split into **preview and submit**: preview computes and describes the action, submit executes it, and submit only runs after an explicit confirmation state the host tracks. The model cannot "accidentally" write; the pathway doesn't exist. Identity is **injected**, never asserted: the verified `AccessContext` rides into every domain call from the host, so the model structurally cannot claim to be someone else. A **gate** stops every domain tool until verification succeeds — enforced in the orchestrator, not requested in a prompt. And confirmations follow a **contract**: an explicit yes across a turn boundary, with repeated unclear replies ticking a handoff counter until the conversation escalates to a human instead of looping forever.
  
 Look at what's left for the LLM: intent classification, argument extraction, narration. Every one of them recoverable. A misroute produces a clarifying question, not a bad write. That's not an accident — it's the design. The model gets exactly the jobs where being wrong is cheap.
  
@@ -23,7 +23,7 @@ Honesty demands the other list too, as of the time of writing: timeouts, retry p
  
 For this system I built two orchestration modes:
  
-1. **Mode A** (debug): plan, execute, then narrate — slower, but every step inspectable.
+1. **Mode A** (debug): plan, execute, then narrate, slower, but every step inspectable.
 2. **Mode B** (production): a single merged LLM call plans and responds ; fewer round-trips, fewer LLM calls, and therefore faster replies.
 The seam matters more than either mode. Because both live behind the same interface, switching is configuration. A bug needs step-by-step visibility? Flip to A, watch it think, flip back. Ship on B.
  
