@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Part 7: A Loss Function That Decides Which Brain to Use"
-date: 2026-09-06 09:00:00 +1000
+date: 2026-09-10 09:00:00 +1000
 series: "Building an Agentic AI Support System in Healthcare Context"
 tags: [LLM, Evaluation, Faithfulness, Orchestration]
 ---
@@ -10,7 +10,7 @@ tags: [LLM, Evaluation, Faithfulness, Orchestration]
 
 ## The switch we actually need
 
-Falling back from fast-but-risky to slow-but-safe is only useful if something decides *when*. A human toggling a config flag doesn't count — this happens in the middle of live calls, thousands of times a day. And "the prompt got long" is too crude a trigger on its own: a long prompt doesn't always hallucinate, and a short one sometimes does. What I actually want to detect isn't prompt length — it's the *symptom* prompt length causes. **Drift**: the moment the fast answer stops being faithful to what the tools returned and what the caller asked. Catch the drift and I catch the hallucination, whatever its cause — bloated context, an unlucky sample, a genuinely ambiguous request. So the real question becomes: how do you measure, cheaply and automatically, whether a reply is faithful?
+Falling back from fast-but-risky to slow-but-safe is only useful if something decides *when*. A human toggling a config flag doesn't count, this happens in the middle of live calls, thousands of times a day. And "the prompt got long" is too crude a trigger on its own: a long prompt doesn't always hallucinate, and a short one sometimes does. What I actually want to detect isn't prompt length, it's the *symptom* prompt length causes. **Drift**: the moment the fast answer stops being faithful to what the tools returned and what the caller asked. Catch the drift and I catch the hallucination, whatever its cause — bloated context, an unlucky sample, a genuinely ambiguous request. So the real question becomes: how do you measure, cheaply and automatically, whether a reply is faithful?
 
 ## The motivation: latency forces the question
 
