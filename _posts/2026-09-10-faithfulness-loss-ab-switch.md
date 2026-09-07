@@ -1,14 +1,14 @@
 ---
 layout: post
 title: "Part 7: A Loss Function That Decides Which Brain to Use"
-date: 2026-08-24 09:00:00 +1000
+date: 2026-09-10 09:00:00 +1000
 series: "Building an Agentic AI Support System in Healthcare Context"
 tags: [LLM, Evaluation, Faithfulness, Orchestration]
 ---
 
 ![Request to tool result to narration — the same three-part shape as an autoencoder]({{ '/assets/img/pipeline-shape.png' | relative_url }})
 
-*Part 5 ended on a promise. Two orchestration modes — the fast merged Mode B, the careful step-by-step Mode A — and a real reason to switch between them: as the domains and tools multiply, Mode B's single merged prompt swells until the context window is bloated enough to hallucinate. I said the system should fall back to the leaner Mode A when that happens, and that **how it detects the moment to switch** was a story for a later post. This is that post. The detector turned out to be a small loss function that asks, every turn, one question: do we actually believe what we're about to say?*
+*In part 5 we talked about 2 orchestration modes: the fast merged Mode B, the careful step-by-step Mode A and a real reason to switch between them: as the domains and tools multiply, Mode B's single merged prompt swells until the context window is bloated enough to hallucinate. I said the system should fall back to the leaner Mode A when that happens, and that **how it detects the moment to switch** was a story for a later post. This is that post. The detector turned out to be a small loss function that asks, every turn, one question: do we actually believe what we're about to say?*
 
 ## The switch we actually need
 
