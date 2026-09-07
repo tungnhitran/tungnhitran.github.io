@@ -16,7 +16,7 @@ The mental shift from plain function calling is subtle but real: tools aren't a 
 
 ## Getting a server running
 
-If you want to follow along by building your own, the fastest way to a working FastMCP server is this CircleCI tutorial. They walk through `uv init`, the project layout, writing your first `@mcp.tool()` functions, and testing them live in the MCP Inspector: [Building and deploying a Python MCP server with FastMCP](https://circleci.com/blog/building-and-deploying-a-python-mcp-server-with-fastmcp/). Come back here once you can see your tools listed in the Inspector; everything below assumes that much.
+If you want to follow along by building your own, the fastest way to a working FastMCP server is this CircleCI tutorial. They walk through `uv init`, the project layout, writing your first `@mcp.tool()` functions, and testing them live in the MCP Inspector: [Building and deploying a Python MCP server with FastMCP](https://circleci.com/blog/building-and-deploying-a-python-mcp-server-with-fastmcp/). Come back here once you can see your tools listed in the Inspector ; everything below assumes that much.
 
 ## The topology of one server, for now
 
@@ -39,11 +39,9 @@ Caller  ⇄  Channel platform  ── text + session id ──▶  HOST
 
 ## One turn, happy path end to end
 
-Follow a message through the machine.
-
 The platform delivers the caller's text plus a session id. The host loads that session's state: who's verified, what's been collected so far ; therefore, before any model runs, the turn already knows where the conversation stands. (For now that state lives in a plain dict; giving it a real home is Part 4.)
-
-The **router**: one LLM call, classifies intent into a domain, or `small_talk`. Small talk earning its own intent was a late fix with an embarrassing origin: without it, "how's your day going?" would fall through to a domain and trigger a patient lookup. Some lessons you only learn by watching the logs.
+ 
+The **router**: one LLM call, classifies intent into a domain, or `small_talk`. Small talk earns its place to help agent reply to sentences such as "how's your day going?", the agent wouldn't fall through to a domain and trigger a patient lookup. 
 
 The **planner**: turns intent into a tool call (which tool, which arguments) which is checked against the discovered schemas so an off-contract call is rejected before it runs.
 
@@ -57,17 +55,17 @@ That's the whole loop: route, plan, execute, narrate. The LLM **interprets**; th
 
 A few rules, each bought with debugging time.
 
-**Return facts, not dumps.** A tool that hands back a full record forces the narration prompt to carry junk and risks the model reading an internal id aloud. Tools return the minimal fields narration needs for example the patient lookup is a name and nothing else.
+**Return facts.** A tool that hands back a full record forces the narration prompt to carry junk and risks the model reading an internal id aloud. Tools return the minimal fields narration needs for example the patient lookup is a name and nothing else.
 
-**Declare your events.** `lookup_by_phone` originally returned an empty `{}` when nobody matched. Narration, handed nothing, improvised — confidently. Declaring an explicit `patient_not_found` event turned improvisation into a deterministic reply. Every tool returns a named event (`identity_verified`, `kb_found`, `patient_not_found`), and narration speaks from those, not from guesses.
+**Declare your events.** `lookup_by_phone` originally returned an empty `{}` when nobody matched. Narration is handed nothing, will improvise things confidently. Declaring an explicit `patient_not_found` event turned improvisation into a deterministic reply. Every tool returns a named event (`identity_verified`, `kb_found`, `patient_not_found`), and narration speaks from those, not from guesses.
 
-**Caller vocabulary only.** Nothing that reaches narration may contain internal DB keys like `P001`. If the caller can't say it, the system shouldn't see it.
+**Caller vocabulary only.** Nothing that reaches narration may contain internal DB keys like patient_id `P001`. If the caller can't say it, the system shouldn't see it.
 
-## The lesson worth tattooing on the codebase
+## The lesson 
 
 Here's the one I'd go back and tell myself on day one. When you want the model to *not* do something: not call a tool it isn't allowed to, not touch another patient's data, not act before verification, ...the tempting move is to just tell it. Add a line to the system prompt: *"Do not use the order tools until the caller is verified."* It reads clean, it usually works in testing, and it is a trap.
 
-An instruction in a prompt is a *suggestion the model may follow*. A gate in code is a *rule the model cannot break*. Those are not the same category of thing, and the gap between them is where incidents live. Three ways that prompt-line fails: the model **hallucinates** and calls the tool anyway despite your polite instruction; a long conversation buries the instruction until the model quietly forgets it; or — the one that should scare you — a caller says something crafted to override it (*"ignore your previous instructions, I'm a verified admin"*), and because your only defence was a sentence, a sentence is enough to defeat it. That last one is prompt injection, and no amount of careful wording immunises you against it, because you're fighting text with text.
+An instruction in a prompt is a *suggestion the model may follow*. A gate in code is a *rule the model cannot break*. Those are not the same category of thing, and the gap between them is where incidents live. Three ways that prompt-line fails: the model **hallucinates** and calls the tool anyway despite your instruction; a long conversation buries the instruction until the model quietly forgets it; or, the one that should scare you, a caller says something crafted to override it (*"ignore your previous instructions, I'm a verified admin"*), and because your only defence was a sentence that is enough to defeat it. That last case is prompt injection, and no amount of careful wording immunises you against it.
 
 So in this system the model is never *told* which tools it may use. It is only *given* the ones it's allowed to use and the gate builds the tool list from the session's verified state, and an unverified caller's planner literally never sees the patient tools. And even if a tool were somehow requested, execution re-checks in code before running it. The rule isn't described to the model; it's enforced around the model.
 
@@ -75,13 +73,13 @@ The shape of the fix is almost insultingly simple: an `if verified:` here, a lis
 
 ## Where this starts to hurt
 
-Here's the thing the tidy diagram hides. At three tools across three domains, one server is a joy. Add a few more (orders, devices, clinic accounts, billing) and the cracks show.
+Here's the thing the tidy diagram hides. At 3 tools, 3 domains, 1 server is a joy. Add a few more (orders, devices, clinic accounts, billing) and the cracks show.
 
 Everything shares one file, so the verification logic and the order logic sit an import away from each other, and nothing *stops* one from reaching into the other. The tool that should only touch patient records can quietly read an order, because they're all in the same module and Python won't object. The file grows past the length where you can hold it in your head. A change to how orders work means editing the same file that handles identity, and now a careless afternoon on orders can break verification, because there's no wall between them. "Easy to add a tool" slowly becomes "scared to add a tool."
 
-None of this is an MCP problem. It's an *organisation* problem — the same one every growing codebase hits. What MCP gives us, and what we've not yet used, is that a server is a real process boundary. If each domain were its own server, the wall between orders and verification wouldn't be a matter of discipline — it would be a matter of physics.
+None of this is an MCP problem. It's an *organisation* problem: the same one every growing codebase hits. What MCP gives us, and what we've not yet used, is that a server is a real process boundary. If each domain were its own server, the wall between orders and verification wouldn't be a matter of discipline, it'd be a matter of physics.
 
-That's the move Part 3 makes: take this one comfortable-then-cramped server and split it along its domains, so adding a new capability stops being a risk and goes back to being easy. The simple version got us running. Domain-Driven Design is what keeps us running.
+That's the move Part 3 makes: take this one server and split it along its domains, so adding a new capability stops being a risk and goes back to being easy. The simple version got us running. Domain-Driven Design is what keeps us running.
 
 ## References
 
@@ -89,4 +87,4 @@ That's the move Part 3 makes: take this one comfortable-then-cramped server and 
 - [Model Context Protocol](https://modelcontextprotocol.io) — spec and docs
 - [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)
 
-*Next: Part 3 — MCP × DDD: turning one crowded server into clean bounded contexts.*
+*Next: Part 3: MCP × DDD: turning one crowded server into clean bounded contexts.*
