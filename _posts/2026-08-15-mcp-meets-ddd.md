@@ -10,7 +10,7 @@ tags: [MCP, Domain-Driven Design, Bounded Contexts]
 
 ## The refactor
 
-Take the crowded server from Part 2 and split it along its domains — one server per bounded context:
+Take the crowded server from Part 2 and split it along its domains: one server per bounded context:
 
 ```
                          ┌──────────────┐
