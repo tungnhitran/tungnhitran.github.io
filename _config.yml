@@ -2,23 +2,29 @@ title: Alex Tran
 author: Alex Tran
 
 description: >-
-  Building agentic AI systems — notes on MCP, Domain-Driven Design,
-  and getting LLM-driven products production-ready.
+  Building agentic AI systems — notes on the Model Context Protocol (MCP),
+  Domain-Driven Design (DDD), and getting LLM-driven products production-ready.
 
 baseurl: ""
 url: "https://tungnhitran.github.io"
 permalink: /blog/:title/
 timezone: Australia/Melbourne
 
-# social buttons on the home profile card — EDIT THESE
+# Markdown: GFM so bare URLs become clickable links
+markdown: kramdown
+kramdown:
+  input: GFM
+
+# social buttons on the home profile card
 social:
   github: "https://github.com/tungnhitran"
   linkedin: "https://www.linkedin.com/in/tung-nhi-tran/"
   devto: "https://tungnhitran.netlify.app/"
 
 plugins:
-  - jekyll-feed
+  - jekyll-sitemap
   - jekyll-seo-tag
+  - jekyll-feed
 
 exclude:
   - README.md
