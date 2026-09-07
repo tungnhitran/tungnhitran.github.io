@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Part 7: A Loss Function That Decides Which Brain to Use"
-date: 2026-09-10 09:00:00 +1000
+date: 2026-09-06 09:00:00 +1000
 series: "Building an Agentic AI Support System in Healthcare Context"
 tags: [LLM, Evaluation, Faithfulness, Orchestration]
 ---
