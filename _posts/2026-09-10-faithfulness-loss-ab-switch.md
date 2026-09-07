@@ -6,8 +6,6 @@ series: "Building an Agentic AI Support System in Healthcare Context"
 tags: [LLM, Evaluation, Faithfulness, Orchestration]
 ---
 
-![Request to tool result to narration — the same three-part shape as an autoencoder]({{ '/assets/img/pipeline-shape.png' | relative_url }})
-
 *In part 5 we talked about 2 orchestration modes: the fast merged Mode B, the careful step-by-step Mode A and a real reason to switch between them: as the domains and tools multiply, Mode B's single merged prompt swells until the context window is bloated enough to hallucinate. I said the system should fall back to the leaner Mode A when that happens, and that **how it detects the moment to switch** was a story for a later post. This is that post. The detector turned out to be a small loss function that asks, every turn, one question: do we actually believe what we're about to say?*
 
 ## The switch we actually need
@@ -46,7 +44,9 @@ Faithfulness, in other words, is a three-way relationship:
 
 A faithful turn reconstructs cleanly across those three. Break a link and the error rises.
 
-![The autoencoder analogy: input/latent/output maps onto request/tool_result/narration]({{ '/assets/img/autoencoder_analogy.svg' | relative_url }})
+![The autoencoder analogy: input/latent/output maps onto request/tool_result/narration]({{ '/assets/img/autoencoder_analogy.png' | relative_url }})
+
+![Request to tool result to narration — the same three-part shape as an autoencoder]({{ '/assets/img/pipeline-shape.png' | relative_url }})
 
 ## First attempt: the term that was always zero
 
