@@ -24,11 +24,11 @@ Take the crowded server from Part 2 and split it along its domains: one server p
                          └──────────────┘
 ```
 
-Same tools, same behaviour as Part 2. But now the wall between patient logic and verification logic isn't discipline, it's a process boundary. The patient server *cannot* read an order, because the order server is a different process it can only reach through a declared tool. The thing we wanted in Part 2, physics instead of good intentions, is now just how the system is shaped. And adding a new domain? A new folder, a new server, zero risk to the ones already running. Below is why that mapping onto DDD is so exact.
+Same tools, same behaviour as Part 2. But now the wall between patient logic and verification logic isn't discipline, it's a process boundary. The patient server *cannot* read an order, because the order server is a different process, it can only reach through a declared tool. The thing we wanted in Part 2, physics instead of good intentions, is now just how the system is shaped. And adding a new domain? A new folder, a new server, zero risk to the ones already running. Below is why that mapping onto DDD is so exact.
 
 ## DDD, pointed at real code
 
-Abstract DDD talk loses people — it certainly used to lose me. Every concept below is pointed at the actual system, because that's the only way any of it ever stuck.
+Below we'll walk through DDD concept below is pointed at the actual system, because that's the only way any of it ever stuck.
 
 Start with the **bounded context**: a boundary inside which a domain model is consistent and its language unambiguous. Here, that's each folder under `servers/`: verification, patient, order, clinic, kb. "Order" means one precise thing (a device order) inside the order server. The verification server doesn't even have the word.
 
@@ -38,7 +38,7 @@ An **aggregate** is the consistency unit you load and save as one thing. An orde
 
 **Domain events** are facts the domain emits: `order_created`, `order_not_found`, `identity_verified`. In this system they're not an abstraction bolted on but literally what tools return to the host, and literally what narration speaks from. The event vocabulary *is* the contract between domain and conversation.
 
-The **anti-corruption layer** shows up twice, which surprised me. First, in Hughes' framing, which shaped much of my thinking here, the tool layer itself is an ACL: it translates between "strings and simple parameters an LLM can reason about" and "rich domain objects the services work with." Every MCP tool is a thin adapter over a real service. Second, the host injects an `AccessContext` — who the verified caller is, and whether they're a patient, clinic, or doctor — into every domain call. Domains never parse raw user input for identity; they trust the injected context. Identity concerns can't leak into business domains, because they never enter them.
+The **anti-corruption layer** shows up twice, which surprised me. First, in Hughes' framing, which shaped much of my thinking here, the tool layer itself is an ACL: it translates between "strings and simple parameters an LLM can reason about" and "rich domain objects the services work with." Every MCP tool is a thin adapter over a real service. Second, the host injects an `AccessContext`, who the verified caller is, and whether they're a patient, clinic, or doctor, into every domain call. Domains never parse raw user input for identity; they trust the injected context. Identity concerns can't leak into business domains, because they never enter them.
 
 And **dependency injection** ties it together: the LLM provider, session store, and orchestration mode all sit behind interfaces wired at startup. Swapping the fast merged path for the slow debuggable one is config, not surgery.
 
