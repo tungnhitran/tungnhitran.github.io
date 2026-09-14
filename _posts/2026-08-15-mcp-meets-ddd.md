@@ -28,7 +28,7 @@ Same tools, same behaviour as Part 2. But now the wall between patient logic and
 
 ## DDD, pointed at real code
 
-Below we'll walk through DDD concept below is pointed at the actual system, because that's the only way any of it ever stuck.
+Below we'll walk through DDD concept below is pointed at the actual system:
 
 Start with the **bounded context**: a boundary inside which a domain model is consistent and its language unambiguous. Here, that's each folder under `servers/`: verification, patient, order, clinic, kb. "Order" means one precise thing (a device order) inside the order server. The verification server doesn't even have the word.
 
