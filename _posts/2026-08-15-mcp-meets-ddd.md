@@ -26,19 +26,17 @@ Take the crowded server from Part 2 and split it along its domains: one server p
 
 Same tools, same behaviour as Part 2. But now the wall between patient logic and verification logic isn't discipline, it's a process boundary. The patient server *cannot* read an order, because the order server is a different process, it can only reach through a declared tool. The thing we wanted in Part 2, physics instead of good intentions, is now just how the system is shaped. And adding a new domain? A new folder, a new server, zero risk to the ones already running. Below is why that mapping onto DDD is so exact.
 
-## DDD, pointed at real code
+## Domain-Driven Design, pointed at real code
 
-Below we'll walk through DDD concept below is pointed at the actual system:
+Below we'll walk through Domain-Driven Design (DDD) concept below is pointed at the actual system:
 
 Start with the **bounded context**: a boundary inside which a domain model is consistent and its language unambiguous. Here, that's each folder under `servers/`: verification, patient, order, clinic, kb. "Order" means one precise thing (a device order) inside the order server. The verification server doesn't even have the word.
 
 The **ubiquitous language** follows: design docs, code, and user-facing replies all use the same terms. When the business says "pending order," the tool event is `pending`, the cache key is `pending:<owner>`, and the reply says "pending." No translation layers. No synonyms quietly drifting apart over months until nobody's sure whether "held" and "pending" are the same thing.
 
-An **aggregate** is the consistency unit you load and save as one thing. An order with its status, owner, and approval state is one aggregate, which is why the one-pending-order rule is enforced at the aggregate level, as an atomic check on a `pending:<owner>` key at creation time, rather than scattered across every caller that might create an order.
-
 **Domain events** are facts the domain emits: `order_created`, `order_not_found`, `identity_verified`. In this system they're not an abstraction bolted on but literally what tools return to the host, and literally what narration speaks from. The event vocabulary *is* the contract between domain and conversation.
 
-The **anti-corruption layer** shows up twice, which surprised me. First, in Hughes' framing, which shaped much of my thinking here, the tool layer itself is an ACL: it translates between "strings and simple parameters an LLM can reason about" and "rich domain objects the services work with." Every MCP tool is a thin adapter over a real service. Second, the host injects an `AccessContext`, who the verified caller is, and whether they're a patient, clinic, or doctor, into every domain call. Domains never parse raw user input for identity; they trust the injected context. Identity concerns can't leak into business domains, because they never enter them.
+The **anti-corruption layer**: First, in Hughes' framing, the tool layer itself is an ACL: it translates between "strings and simple parameters an LLM can reason about" and "rich domain objects the services work with." Every MCP tool is a thin adapter over a real service. Second, the host injects an `AccessContext`, who the verified caller is, and whether they're a patient, clinic, or doctor, into every domain call. Domains never parse raw user input for identity, they trust the injected context. Identity concerns can't leak into business domains, because they never enter them.
 
 And **dependency injection** ties it together: the LLM provider, session store, and orchestration mode all sit behind interfaces wired at startup. Swapping the fast merged path for the slow debuggable one is config, not surgery.
 
@@ -55,9 +53,9 @@ Hughes' Part 1 maps classic DDD layers onto agentic systems: presentation, appli
 | Domain model | Entities, events | `AccessContext`, `SlotState`, order aggregates, domain events |
 | Infrastructure | External systems, persistence | Redis, DB clients, channel platform API |
 
-His litmus test for boundaries is the one I now use everywhere: *if I replaced this external system, what would change?* Replace the channel vendor &rarr only the event adapter. Replace the LLM &rarr only the provider behind the interface. Replace Redis &rarr only the session store. Each boundary is a replacement point, and the LLM one wasn't hypothetical: we exercised it for real when switching orchestration modes.
+Let's revise the initial purpose: *if I replaced this external system, what would change?* Replace the channel vendor &rarr only the event adapter. Replace the LLM &rarr only the provider behind the interface. Replace Redis &rarr only the session store. Each boundary is a replacement point, and the LLM one wasn't hypothetical: we exercised it for real when switching orchestration modes.
 
-One deliberate divergence is worth naming. Hughes organises agents by *job* (SearchAgent, SummarizeAgent) and services by *external system* (youtube.py). This system decomposes by **business domain** on both sides — because in healthcare support, the domains (orders, verification, patients, clinics) *are* the business, not wrappers around someone else's API. Same principle, cohesion around what changes together; different axis, chosen by asking what the litmus test says would actually be replaced.
+One deliberate divergence is worth naming. Hughes organises agents by *job* (SearchAgent, SummarizeAgent) and services by *external system* (YouTube). This system decomposes by **business domains** such as orders, verification, patients, clinics. Same principle, cohesion around what changes together; different axis, chosen by asking what the litmus test says would actually be replaced.
 
 ## Where MCP makes DDD physical
 
