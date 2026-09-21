@@ -30,7 +30,7 @@ Same tools, same behaviour as Part 2. But now the wall between patient logic and
 
 Below we'll walk through Domain-Driven Design (DDD) concept below is pointed at the actual system:
 
-Start with the **bounded context**: a boundary inside which a domain model is consistent and its language unambiguous. Here, that's each folder under `servers/`: verification, patient, order, clinic, kb. "Order" means one precise thing (a device order) inside the order server. The verification server doesn't even have the word.
+Start with the **bounded context**: a boundary inside which a domain model is consistent and its language unambiguous. Here, that's each domain under `servers/`: verification, patient, order, clinic, kb. 
 
 The **ubiquitous language** follows: design docs, code, and user-facing replies all use the same terms. When the business says "pending order," the tool event is `pending`, the cache key is `pending:<owner>`, and the reply says "pending." No translation layers. No synonyms quietly drifting apart over months until nobody's sure whether "held" and "pending" are the same thing.
 
@@ -59,9 +59,7 @@ One deliberate divergence is worth naming. Hughes organises agents by *job* (Sea
 
 ## Where MCP makes DDD physical
 
-Here's the thing about bounded contexts in a monolith: they're a discipline. A folder structure, a linting rule, code-review vigilance. And someone can always `import` across the line at 6pm before a demo, and someone eventually will.
-
-With each context as an MCP server, the discipline becomes physics. The boundary is a process and crossing it requires a declared tool with a schema, and there is no sneaky import. The published language is machine-checked, because tool schemas are the context's public contract and `_validate_plan` rejects anything off-contract on every single call. Context maps are visible: the host is the only place domains compose, so reading `src/client/` tells you the entire inter-domain choreography. And teams scale along contexts: one domain's workflow can change weekly without touching verification. Conway's Law, working *for* you, for once.
+Here's the thing about bounded contexts in a monolith: they're a discipline. With each context as an MCP server, the discipline becomes physics. The boundary is a process and crossing it requires a declared tool with a schema, and there is no sneaky import. And teams scale along contexts: one domain's workflow can change weekly without touching the logic of the host. 
 
 The inverse deserves saying just as plainly: **DDD is what makes a multi-server MCP system sane.** Without domain thinking, "more MCP servers" just means more places for logic to hide. The domain decomposition tells you where the boundaries belong. MCP, usefully and physically, enforces them.
 
@@ -71,7 +69,7 @@ Here's where the split stops being tidy architecture and starts paying rent, and
 
 But first, the mechanism that makes it possible and it's the quiet beauty of MCP. You never *register* a tool with the host imperatively. You **declare** it. Each MCP server publishes a manifest: for every tool, a name, a description, and a JSON schema of its arguments (which are required, which are optional, their types). The host doesn't hardcode any of this — it calls `list_tools` at connect time and *discovers* what each server offers.
 
-That single fact is what makes everything below automatic. The host doesn't need to be taught that the order server has a `lookup_order` tool taking a required `order_id`. It reads that from the manifest. Here's what that actually looks like — this is (lightly trimmed) what the order server hands the host when it calls `list_tools`:
+That single fact is what makes everything below automatic. The host doesn't need to be taught that the order server has a `lookup_order` tool taking a required `order_id`. It reads that from the manifest. Here's what that actually looks like, what the order server hands the host when it calls `list_tools`:
 
 ```json
 {
@@ -89,44 +87,38 @@ That single fact is what makes everything below automatic. The host doesn't need
 
 That's the whole contract, and no host-side code mentions `lookup_order` by name anywhere. Look how much the host gets from just those few lines:
 
-- The **router** learns the order domain has a way to look orders up, so it can send "where's my order?" here.
-- The **planner** learns the tool takes one argument, `order_id`, a string — so it knows exactly what to pass.
-- **Slot-filling** reads `"required": ["order_id"]` and, when the caller hasn't given an order number, generates the question to ask for it. That behaviour comes *entirely* from that one line in the schema — I wrote no "ask for the order number" logic anywhere.
+- The **router** learns the order domain has a way to look orders up, so it can send "where's my order?" to Order server.
+- The **planner** learns the tool takes one argument, `order_id`, a string, so it knows exactly what to pass.
+- **Slot-filling** reads `"required": ["order_id"]` and, when the caller hasn't given an order number, generates the question to ask for it. That behaviour comes *entirely* from that one line in the schema, no "ask for the order number" logic anywhere.
 - **Narration** has the human-readable `description` to ground its phrasing.
-
-Change the tool, add an optional `include_history` argument, and every one of those adjusts on the next connect, because they all read from the manifest rather than from anything hand-wired.
 
 You describe *what a tool is* in the manifest; the host figures out *how to drive it* from that description. Declare, don't wire. A new capability is a schema entry, and the machinery meets it there.
 
 Now the payoff that mechanism buys.
 
-Some logic isn't *about* any one domain, it's about how the whole conversation behaves. The clearest example in this system is the escalation rule: after three unproductive turns: three failed verifications, three tool calls that got nowhere, three "I didn't catch that"... the caller goes to a human instead of looping forever. That "three strikes" counter has nothing to do with orders or patients or the knowledge base specifically. It's a property of *the host*, not of any domain.
+Some logic isn't *about* any one domain, it's about how the whole conversation behaves. The clearest example in this system is the escalation rule: after 3 unproductive turns: three failed verifications, three tool calls that got nowhere, three "I didn't catch that"... the caller goes to a human instead of looping forever. That "three strikes" counter has nothing to do with orders or patients or the knowledge base specifically. It's a property of *the host*, not of any domain.
 
-So it lives in the host, once. The host runs every turn for every domain, counts unproductive outcomes, and trips the escalation when the count hits the threshold. And here's the payoff: **when I add a new domain, it gets three-strikes escalation for free.** I don't wire it up. I don't remember to add it. A new server shows up exposing its tools, the host routes to it like any other, and the moment that domain produces three dead-end turns, the same escalation fires — because the counter was never the domain's job in the first place.
+So it lives in the host, once. The host runs every turn for every domain, counts unproductive outcomes, and trips the escalation when the count hits the threshold. And here's the payoff: **when I add a new domain, it gets three-strikes escalation for free.** I don't wire it up. I don't remember to add it. A new server shows up exposing its tools, the host routes to it like any other, and the moment that domain produces 3 dead-end turns, the same escalation fires, because the counter was never the domain's job in the first place.
 
-It's not alone. A whole layer of behaviour lives in the host, defined once, applied to every turn of every domain — and inherited by each new bounded context the day it's born:
+A whole layer of behaviour lives in the host, defined once, applied to every turn of every domain, and inherited by each new bounded context the day it's born:
 
 - **The verification gate**: no patient-scoped tool runs until identity is established. A new domain's sensitive tools are gated automatically, because the gate lives above the domains, not inside them.
 - **Identity injection**: the verified patient id and phone are stamped onto tool arguments by the host, never chosen by the model. New tools that need them just receive them.
-- **Three-strikes escalation**: three unproductive turns and the caller goes to a human. Domain-agnostic by construction.
-- **Slot-filling** *(generates language)*: a tool needs an order number and the caller hasn't said one? The host notices the missing argument, holds the call, and **produces the question itself** — "Sure, what's the order number?" The domain never sees the half-formed request; it's only called once the slots are full. A new domain gets this the instant it declares a tool with a required argument, writing zero words of dialogue.
+- **Three-strikes escalation**: 3 unproductive turns and the caller goes to a human. Domain-agnostic by construction.
+- **Slot-filling** *(generates language)*: a tool needs an order number and the caller hasn't said one? The host notices the missing argument, holds the call, and **produces the question itself**: "Sure, what's the order number?" The domain never sees the half-formed request; it's only called once the slots are full. A new domain gets this the instant it declares a tool with a required argument, writing zero words of dialogue.
 - **Confirmation before writes** *(generates language)*: before anything irreversible, the host **generates** "Just to confirm — you want to cancel order 1002, yes?" and waits for the yes across a turn boundary. Declare a write-shaped tool and it's protected on day one.
 - **Narration**: turning a tool's structured result into a natural sentence is a host step, so a new domain returns facts and gets fluent replies for free.
 - **Request logging & the audit trail**: every turn recorded the same way, no matter which domain served it.
 
 Notice the two marked *generates language*. Most cross-cutting services just gate or count. But slot-filling and confirmation go further: they **write the actual words** sent back to the caller, on the domain's behalf. That's the difference between a shared *rule* and a shared *voice*. The upshot is the same either way: a new domain server can be almost pure data access, *here are my tools, here's what they return*, and still behave like a polished conversational agent, because the parts that make it *feel* conversational (asking for what's missing, confirming before acting, escalating when stuck) were never its job to build.
 
-This is the division that makes the system *expandable* rather than merely *organised*. DDD tells you where the domain boundaries go; putting the cross-cutting services in the host means crossing one of those boundaries, adding a whole new domain, costs almost nothing, because everything that should apply to "every conversation" already does. A monolith can do this too, in principle. But in a monolith "shared service every domain uses" and "thing any domain can accidentally reach into and break" are the same code with the same access. Here the host's services are above the domains and the domains can't touch each other, so shared behaviour is inherited, not entangled.
-
-## The pattern we refused
-
-All through the build, articles kept offering the single-endpoint pattern as the simple option: one mega-server, free-form requests, let the model sort it out. Viewed through DDD it's the anti-pattern in protocol form: one context, one blurred language, unbounded blast radius. We kept explicit tools-per-domain, and every incident that stayed small over the following months stayed small *because* of it.
+This is the division that makes the system *expandable* rather than merely *organised*. DDD tells you where the domain boundaries go; putting the cross-cutting services in the host means crossing one of those boundaries, adding a whole new domain, costs almost nothing, because everything that should apply to "every conversation" already does. Here the host's services are above the domains and the domains can't touch each other, so shared behaviour is inherited, not entangled.
 
 ## What the LLM changes about DDD and what it doesn't
 
 The genuinely novel part of putting an LLM in front of bounded contexts: the router is doing **context selection by natural language**. A user says "where's my thing," and the router's whole job is mapping that to the order context. Which makes the ubiquitous language load-bearing in a way Evans never anticipated, the router prompt describes each domain in the same terms the tools and events use, and any mismatch there becomes a misroute, directly, measurably.
 
-What doesn't change: invariants stay in code. The LLM never enforces the one-pending-order rule, never verifies identity, never decides whether a write is allowed. Domains guarantee; the LLM interprets. Hold onto that sentence — it becomes the entire theme of Part 5.
+What doesn't change: invariants stay in code. The LLM never enforces the one-pending-order rule, never verifies identity, never decides whether a write is allowed. Domains guarantee; the LLM interprets. Hold onto that sentence, it becomes the entire theme of Part 5.
 
 ## References
 
@@ -136,6 +128,5 @@ What doesn't change: invariants stay in code. The LLM never enforces the one-pen
 - Martin Fowler, *BoundedContext*: https://martinfowler.com/bliki/BoundedContext.html
 - Martin Fowler, *UbiquitousLanguage*: https://martinfowler.com/bliki/UbiquitousLanguage.html
 - Model Context Protocol: https://modelcontextprotocol.io
-- Vaughn Vernon, *Implementing Domain-Driven Design* (2013)
 
-*Next: Part 4 — making it production-shaped: where state lives, and the memory decision I'd defend in any review.*
+*Next: Part 4: making it production-shaped: where state lives, and the memory decision I'd defend in any review.*
