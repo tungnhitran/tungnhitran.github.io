@@ -61,6 +61,45 @@ loss = diff(request, narration) + diff(tool_result, request)
 That's the entire edit, one term's reference swapped from `narration` to `request`. Now the two terms measure genuinely different things. The first: does what we're about to say match the topic of the question. The second: did we fetch something that actually answers the question. Selection rot has nowhere left to hide, fetch the wrong order and `diff(tool_result, request)` spikes no matter how faithfully the narration then describes it.
 
 Both terms are cosine distances between embeddings, a `rel_diff` with a single relevance floor (`_REL_FLOOR = 0.50`) so trivially-related text doesn't register as a match. Cosine, deliberately, for the paraphrase-proofing from the motivation: it reads meaning, not words. And embeddings are the trick that satisfies the whole wishlist at once, an embedding call is an order of magnitude cheaper and faster than a judge model, cheap enough to run on every turn without anyone noticing, and it needs no gold label. Meaning-aware like an LLM judge, but without being another LLM call in the hot path.
+ 
+```python
+_REL_FLOOR = 0.50          # cosine at/above which a pair counts as "aligned"
+ 
+def rel_diff(a: str, b: str, floor: float) -> float | None:
+    """cosine(a,b) >= floor -> 0 (aligned); below scales up to 1 at cosine 0."""
+    sim = _cos(a, b)                       # sentence-transformer cosine, [0,1]
+    if sim is None:                        # no embedding model available
+        return None
+    if sim >= floor:
+        return 0.0
+    return round((floor - sim) / floor, 3)
+ 
+def faithfulness_loss(request, narration, tool_results, **_):
+    tool_text = _tool_text(tool_results)   # flatten dict/list/str -> one string
+    d_narr = rel_diff(request, narration, _REL_FLOOR)   # did we address the request?
+    d_tool = rel_diff(tool_text, request, _REL_FLOOR)   # did we fetch the right data?
+    loss = (d_narr + d_tool) / 2           # equal weight; both must be low
+    return {"loss": round(loss, 3), "diff_narr": d_narr, "diff_tool": d_tool}
+```
+
+## The blind spot I *did* close: wrong values
+ 
+Embedding similarity is blind to single-value swaps: "shipped Aug 4" and "shipped Aug 8" are nearly identical vectors, but one is fabricated. A wrong date, an invented order number, these are the *dangerous* hallucinations, and they sail straight past a purely semantic check. So the real reconstruction term doesn't trust cosine alone. It pairs the semantic score with a **deterministic value check**: pull every number, date, and ID out of the narration, and confirm each one actually appears in the tool results.
+ 
+```python
+_NUM_RE  = re.compile(r"\b\d[\d,]*(?:\.\d+)?\b")
+_DATE_RE = re.compile(r"\b(?:\d{4}-\d{2}-\d{2}|\d{1,2}[/-]\d{1,2}...)\b")
+_ID_RE   = re.compile(r"\b[A-Z]{1,4}[-_]?\d{3,}\b")     # O1001, PO-20260802-0001
+ 
+def _values(text):
+    """Checkable, fabrication-prone tokens: numbers, dates, IDs."""
+    dates = {m.group() for m in _DATE_RE.finditer(text)}
+    ids   = {m.group() for m in _ID_RE.finditer(text)}
+    # ... numbers, minus digits already claimed by a date or ID ...
+    return dates | ids | nums
+```
+ 
+Semantic similarity catches *topic* drift; the value check catches *value* fabrication. Any number the narration says that the tools never returned is a fabrication, full stop. It's the most deterministic part of the whole system and, for a clinical context, the part I trust most.
 
 ## Resisting the urge to make it clever
 
