@@ -7,6 +7,7 @@ tags: [MCP, Domain-Driven Design, Agents, Architecture]
 ---
 
 ![A cheerful engineer beside a friendly HOST robot whose tidy arms plug into labelled domain boxes: verification, patient, order, kb]({{ '/assets/img/hero-part1.png' | relative_url }})
+*Image generated with DALL·E 3.*
 
 *This series is the story of building an agentic AI customer-support phone system: a conversational, multi-turn assistant that verifies who's talking to it, carries context across a whole dialogue, acts on accounts, and knows when to hand off to a human.*
 
