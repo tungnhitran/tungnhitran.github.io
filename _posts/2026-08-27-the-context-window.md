@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Part 6: The Context Window Deserved Its Own Post"
+title: "Part 6: Mind Your Context"
 date: 2026-08-27 09:00:00 +1000
 series: "Building an Agentic AI Support System for a Healthcare Provider"
 tags: [LLM, Context-engineering, Agents]
@@ -18,7 +18,7 @@ The cause was obvious in hindsight: each turn was effectively a fresh start. The
 
 ## The naive fix: just feed it the history
 
-The obvious fix is the one everybody tries first: take the chat history, paste it into the prompt, done. I did exactly that. It helped. "Cancel that one" started resolving. And then three new problems arrived to replace the one that left:
+The obvious fix is the one everybody tries first: take the chat history, paste it into the prompt, done. I did exactly that. It helped. "Cancel that one" started resolving. And then 3 new problems arrived to replace the one that left:
 
 **It got slow and expensive.** A long support conversation meant every turn carried every previous turn. In a latency-bound system, prompt length is response time; the fix for forgetting was making the whole product feel sluggish.
 
@@ -28,7 +28,7 @@ The obvious fix is the one everybody tries first: take the chat history, paste i
 
 ## The U-shape
 
-The explanation is well documented: Liu et al.'s "Lost in the Middle" showed that language models don't pay the *equal attention* to all words in prompt. They retrieve information best from the **beginning and end** of the context, with accuracy sagging badly in the middle, a U-shaped curve. And Anthropic's context-engineering guidance frames the mechanism honestly: attention is a finite budget, and every token competes with every other token. A context window is not RAM. Presence does not imply recall.
+The explanation is well documented: Liu et al.'s "Lost in the Middle" showed that language models don't pay the *equal attention* to all words in prompt. They retrieve information best from the **beginning and end** of the context, with accuracy sagging badly in the middle, a U-shaped curve. And Anthropic's context-engineering guidance frames the mechanism honestly: attention is a finite budget, and every token competes with every other token. Presence does not imply recall.
 
 Now the "still forgets" bug made sense. The facts that mattered most: verified identity, the active order, what's pending confirmation, were established in the *early-middle* of the conversation. As history grew, they migrated into exactly the region the model reads worst. Meanwhile the window I eventually added to cap latency made it worse in a second way: window the history, and those early turns aren't in the middle anymore ; they're *gone*.
 
@@ -44,14 +44,14 @@ The fix was almost anticlimactic: a structured **conversation note**, maintained
 
 Around the note, the rest of the context got disciplined too:
 
-- **History became real chat messages, windowed.** Message-structured dialogue resolves references better than a pasted transcript blob; the window caps cost and latency; the note carries whatever the window drops.
+- **History became real chat messages, windowed.** Message-structured dialogue resolves references better than a pasted transcript; the window caps cost and latency; the note carries whatever the window drops.
 - **The re-quote came out.** One copy of everything.
 - **Each component got its own context diet.** The router sees the message and short domain descriptions — no tool schemas. The planner sees `SlotState` plus only the routed domain's tools. Narration sees labeled facts with declared events (`order_created`, `order_not_found`) — never raw rows. The guiding question for every prompt became: *what is the minimum context that makes this decision correctly?*
 - **And a fast path fell out for free:** with history and the note reliably in view, "what was that order number again?" needs no tool call at all. An `answer_from_context` flag lets the planner skip tools; narration-with-history is the safety net if the flag misfires.
 
 ## Epilogue: it improved 
 
-Reference resolution stopped failing. Early-conversation facts stopped vanishing. Turns got faster, not slower, because the prompt carried a compact note instead of an ever-growing transcript. And the improvement was measurable in the dullest possible way: fewer clarifying questions the user had already answered.
+Reference resolution stopped failing. Early-conversation facts stopped vanishing. Turns got faster, not slower, because the prompt carried a compact note instead of an growing raw transcript. And the improvement was measurable in the dullest possible way: fewer clarifying questions the user had already answered.
 
 Looking back across the whole series, almost every "LLM bug" in this project was a context bug wearing a costume. The forgetting bug was missing history. The wrong-message bug was a duplicate. The still-forgetting bug was the U-curve plus eviction. The improvisation and false-promise bugs (Part 5) were undeclared events and over-licensed prompts. The fix was never a better model, and rarely better prompt *wording*, it was restructuring what entered the context, in what shape, at what position.
 
