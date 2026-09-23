@@ -101,12 +101,6 @@ def _values(text):
  
 Semantic similarity catches *topic* drift; the value check catches *value* fabrication. Any number the narration says that the tools never returned is a fabrication, full stop. It's the most deterministic part of the whole system and, for a clinical context, the part I trust most.
 
-## Resisting the urge to make it clever
-
-The most valuable thing I did to this function afterward was *stop touching it*. Every time I looked I wanted to add something: a second floor for an edge case, a small-talk exemption, a regex for emails and phone numbers, a reweighting so one term counted more. Each felt justified in the moment. Almost all of it was wrong, and my reviewer caught every attempt: the second floor was tuning to the test set; the small-talk flag solved a problem the router already owned; the regexes were a different concern in a faithfulness costume; the reweighting was me trying to fix, with a coefficient, a bug that actually lived in the *test data*.
-
-The lesson outlasted the fix: **a loss you can't hold in your head is a loss you can't trust in production.** Two terms, one floor, cosine. Done.
-
 ## The bug that wasn't a faithfulness bug
 
 One case nearly cost me the whole design. A caller says "thank you," and the system responds by dumping their entire order history. Obviously broken, surely the loss should flag it?
