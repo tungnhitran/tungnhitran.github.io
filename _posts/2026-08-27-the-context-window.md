@@ -28,6 +28,8 @@ The obvious fix is the one everybody tries first: take the chat history, paste i
 
 ## The U-shape
 
+![The U-sahpe]({{ '/assets/img/U_shape_attention.webp' | relative_url }})
+
 The explanation is well documented: Liu et al.'s "Lost in the Middle" showed that language models don't pay the *equal attention* to all words in prompt. They retrieve information best from the **beginning and end** of the context, with accuracy sagging badly in the middle, a U-shaped curve. And Anthropic's context-engineering guidance frames the mechanism honestly: attention is a finite budget, and every token competes with every other token. Presence does not imply recall.
 
 Now the "still forgets" bug made sense. The facts that mattered most: verified identity, the active order, what's pending confirmation, were established in the *early-middle* of the conversation. As history grew, they migrated into exactly the region the model reads worst. Meanwhile the window I eventually added to cap latency made it worse in a second way: window the history, and those early turns aren't in the middle anymore ; they're *gone*.
