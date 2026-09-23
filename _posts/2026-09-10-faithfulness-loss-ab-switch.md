@@ -45,6 +45,7 @@ A faithful turn reconstructs cleanly across those three. Break a link and the er
 ![The autoencoder analogy: input/latent/output maps onto request/tool_result/narration]({{ '/assets/img/autoencoder_analogy.png' | relative_url }})
 
 ![Request to tool result to narration — the same three-part shape as an autoencoder]({{ '/assets/img/pipeline-shape.png' | relative_url }})
+*Image generated with Grok.*
 
 ## First attempt: the term that was always zero
 
